@@ -1,5 +1,5 @@
 use log::*;
-use screeps::{find, prelude::*, Part, ReturnCode};
+use screeps::{find, prelude::*, Part, ResourceType, ReturnCode};
 
 const NAME_PREFIX: &'static str = "starter";
 pub fn get_description() -> (Vec<Part>, &'static str) {
@@ -28,15 +28,17 @@ pub fn game_loop(creep: screeps::Creep) {
 }
 
 fn carry_energy(creep: screeps::Creep) {
-    if let Some(c) = creep.room().controller() {
-        let r = creep.upgrade_controller(&c);
-        if r == ReturnCode::NotInRange {
-            creep.move_to(&c);
-        } else if r != ReturnCode::Ok {
-            warn!("couldn't upgrade: {:?}", r);
-        }
+    let spawns = creep.room().find(find::MY_SPAWNS);
+    if spawns.len() == 0 {
+        warn!("creep room has no spawn.");
+        return;
+    }
+
+    let spawn = &spawns[0];
+    if creep.pos().is_near_to(spawn) {
+        creep.transfer_all(spawn, ResourceType::Energy);
     } else {
-        warn!("creep room has no controller!");
+        creep.move_to(spawn);
     }
 }
 
