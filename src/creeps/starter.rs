@@ -1,12 +1,16 @@
 use log::*;
-use screeps::{find, prelude::*, Part, ResourceType, ReturnCode};
+use screeps::{find, prelude::*, Part, ReturnCode};
 
-const name_prefix: &'static str = "starter";
+const NAME_PREFIX: &'static str = "starter";
 pub fn get_description() -> (Vec<Part>, &'static str) {
     (
         vec![Part::Move, Part::Move, Part::Carry, Part::Work],
-        name_prefix,
+        NAME_PREFIX,
     )
+}
+
+pub fn name_matches(name: &String) -> bool {
+    name.starts_with(NAME_PREFIX)
 }
 
 pub fn game_loop(creep: screeps::Creep) {
@@ -16,18 +20,29 @@ pub fn game_loop(creep: screeps::Creep) {
         return;
     }
 
-    if creep.memory().bool("harvesting") {
-        if creep.store_free_capacity(Some(ResourceType::Energy)) == 0 {
-            creep.memory().set("harvesting", false);
+    if creep.store_free_capacity(None) == 0 {
+        carry_energy(creep);
+    } else {
+        harvest(creep);
+    }
+}
+
+fn carry_energy(creep: screeps::Creep) {
+    if let Some(c) = creep.room().controller() {
+        let r = creep.upgrade_controller(&c);
+        if r == ReturnCode::NotInRange {
+            creep.move_to(&c);
+        } else if r != ReturnCode::Ok {
+            warn!("couldn't upgrade: {:?}", r);
         }
     } else {
-        if creep.store_used_capacity(None) == 0 {
-            creep.memory().set("harvesting", true);
-        }
+        warn!("creep room has no controller!");
     }
+}
 
-    if creep.memory().bool("harvesting") {
-        let source = &creep.room().find(find::SOURCES)[0];
+fn harvest(creep: screeps::Creep) {
+    let spawn = &creep.room().find(find::MY_SPAWNS)[0];
+    if let Some(source) = &spawn.pos().find_closest_by_range(find::SOURCES) {
         if creep.pos().is_near_to(source) {
             let r = creep.harvest(source);
             if r != ReturnCode::Ok {
@@ -36,20 +51,5 @@ pub fn game_loop(creep: screeps::Creep) {
         } else {
             creep.move_to(source);
         }
-    } else {
-        if let Some(c) = creep.room().controller() {
-            let r = creep.upgrade_controller(&c);
-            if r == ReturnCode::NotInRange {
-                creep.move_to(&c);
-            } else if r != ReturnCode::Ok {
-                warn!("couldn't upgrade: {:?}", r);
-            }
-        } else {
-            warn!("creep room has no controller!");
-        }
     }
-}
-
-pub fn name_matches(name: &String) -> bool {
-    name.starts_with(name_prefix);
 }

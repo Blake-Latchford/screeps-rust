@@ -10,7 +10,8 @@ pub fn game_loop() {
         }
 
         if let Some((body, name)) = get_spawn_target() {
-            if spawn.energy() >= body.iter().map(|p| p.cost()).sum() {
+            let spawn_cost = body.iter().map(|p| p.cost()).sum();
+            if spawn.energy() >= spawn_cost {
                 let response = spawn.spawn_creep(&body, &name);
                 if response != ReturnCode::Ok {
                     warn!("couldn't spawn: {:?}", response);
