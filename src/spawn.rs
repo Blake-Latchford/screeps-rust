@@ -20,10 +20,10 @@ pub fn game_loop() {
     }
 }
 
-fn get_spawn_target() -> Option<(Vec<Part>, String)> {
+fn get_spawn_target() -> Option<(Vec<Part>, &'static str)> {
     let creeps = screeps::game::creeps::values();
     if creeps.len() == 0 {
-        return Some((super::creeps::starter::get_body(), "starter".to_string()));
+        return Some(super::creeps::starter::get_description());
     }
     return None;
 }

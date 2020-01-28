@@ -1,8 +1,12 @@
 use log::*;
 use screeps::{find, prelude::*, Part, ResourceType, ReturnCode};
 
-pub fn get_body() -> Vec<Part> {
-    vec![Part::Move, Part::Move, Part::Carry, Part::Work]
+const name_prefix: &'static str = "starter";
+pub fn get_description() -> (Vec<Part>, &'static str) {
+    (
+        vec![Part::Move, Part::Move, Part::Carry, Part::Work],
+        name_prefix,
+    )
 }
 
 pub fn game_loop(creep: screeps::Creep) {
@@ -47,5 +51,5 @@ pub fn game_loop(creep: screeps::Creep) {
 }
 
 pub fn name_matches(name: &String) -> bool {
-    name == "starter"
+    name.starts_with(name_prefix);
 }

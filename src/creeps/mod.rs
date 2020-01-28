@@ -1,6 +1,5 @@
-use std::collections::HashSet;
-
 use log::*;
+use std::collections::HashSet;
 
 pub mod starter;
 
