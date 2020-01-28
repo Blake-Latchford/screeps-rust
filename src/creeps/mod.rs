@@ -12,7 +12,6 @@ pub fn game_loop() {
     }
 
     let time = screeps::game::time();
-
     if time % 32 == 3 {
         info!("running memory cleanup");
         cleanup_memory().expect("expected Memory.creeps format to be a regular memory object");
