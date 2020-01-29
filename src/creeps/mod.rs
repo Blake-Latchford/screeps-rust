@@ -1,13 +1,13 @@
 use log::*;
 use std::collections::HashSet;
 
-pub mod starter;
+pub mod harvester;
 
 pub fn game_loop() {
     debug!("running creeps");
     for creep in screeps::game::creeps::values() {
-        if starter::name_matches(&creep.name()) {
-            starter::game_loop(creep);
+        if harvester::name_matches(&creep.name()) {
+            harvester::game_loop(creep);
         }
     }
 
