@@ -3,11 +3,16 @@ use std::collections::HashSet;
 
 pub mod harvester;
 
+trait Creep {
+    fn new(creep: screeps::Creep) -> Self;
+    fn game_loop(self);
+}
+
 pub fn game_loop() {
     debug!("running creeps");
     for creep in screeps::game::creeps::values() {
-        if harvester::name_matches(&creep.name()) {
-            harvester::game_loop(creep);
+        if creep.name().starts_with(harvester::NAME_PREFIX) {
+            harvester::Harvester::new(creep).game_loop();
         }
     }
 

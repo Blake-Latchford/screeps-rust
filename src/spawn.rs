@@ -28,7 +28,7 @@ impl Spawn {
     fn get_spawn_target(&self) -> Option<(Vec<Part>, &'static str)> {
         self.update_next_target_source();
         if get_target(screeps::memory::root()).is_some() {
-            return Some(super::creeps::harvester::get_description(
+            return Some(super::creeps::harvester::Harvester::get_description(
                 self.0.store_capacity(Some(ResourceType::Energy)),
             ));
         }
