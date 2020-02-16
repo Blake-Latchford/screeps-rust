@@ -1,26 +1,33 @@
+use super::{Creep, Mode};
 use log::*;
-use screeps::{find, prelude::*, ObjectId, Part, ResourceType, ReturnCode};
+use screeps::{find, prelude::*, Part, RawObjectId, Source};
 
 pub const NAME_PREFIX: &'static str = "harvester";
-
 pub struct Harvester(screeps::Creep);
 
 impl super::Creep for Harvester {
-    fn new(creep: screeps::Creep) -> Self {
-        Harvester(creep)
+    fn get_creep(&self) -> &screeps::Creep {
+        return &self.0;
     }
 
-    fn game_loop(self) {
-        let name = self.0.name();
-        debug!("running creep {}", name);
-        if self.0.spawning() {
-            return;
+    fn update_mode(&self) {
+        if self.get_creep().store_free_capacity(None) == 0 {
+            self.set_mode(Mode::TransferTo);
+        } else if self.get_creep().store_used_capacity(None) == 0 {
+            self.set_mode(Mode::Harvest);
         }
+    }
 
-        if self.0.store_free_capacity(None) == 0 {
-            self.carry_energy();
+    fn update_target(&self) {
+        if let Some(mode) = self.get_mode() {
+            let target_id = match mode {
+                Mode::TransferTo => self.get_transfer_target(),
+                Mode::Harvest => self.get_harvest_target(),
+                _ => None,
+            };
+            self.set_target(target_id);
         } else {
-            self.harvest();
+            warn!("No mode selected.");
         }
     }
 }
@@ -44,47 +51,66 @@ impl Harvester {
         (body, NAME_PREFIX)
     }
 
-    fn carry_energy(&self) {
-        let spawns = self.0.room().find(find::MY_SPAWNS);
-        if spawns.len() == 0 {
-            warn!("creep room has no spawn.");
-            return;
-        }
+    fn get_harvest_target(&self) -> Option<RawObjectId> {
+        self.get_stored_id("harvest")
+    }
 
-        let spawn = &spawns[0];
-        if self.0.pos().is_near_to(spawn) {
-            self.0.transfer_all(spawn, ResourceType::Energy);
-        } else {
-            self.0.move_to(spawn);
+    fn set_harvest_target_source(&self, source: screeps::Source) {
+        self.get_creep()
+            .memory()
+            .set("harvest", source.id().to_string());
+    }
+
+    fn get_transfer_target(&self) -> Option<RawObjectId> {
+        Some(screeps::game::spawns::values().pop()?.untyped_id())
+    }
+}
+
+pub struct HarvesterManager {
+    pub harvesters: Vec<Harvester>,
+}
+
+impl HarvesterManager {
+    pub fn default() -> HarvesterManager {
+        HarvesterManager {
+            harvesters: Vec::new(),
         }
     }
 
-    fn harvest(&self) {
-        if let Some(source) = self.get_target() {
-            if self.0.pos().is_near_to(&source) {
-                let r = self.0.harvest(&source);
-                if r != ReturnCode::Ok {
-                    warn!("couldn't harvest: {:?}", r);
-                }
+    pub fn register(&mut self, creep: screeps::Creep) {
+        let harvester = Harvester(creep);
+        if harvester.get_harvest_target().is_none() {
+            if let Some(target_source) = self.get_target_source() {
+                harvester.set_harvest_target_source(target_source);
             } else {
-                self.0.move_to(&source);
+                warn!("Failed to find target for harvester.");
             }
         }
+        self.harvesters.push(harvester);
     }
 
-    fn get_target(&self) -> Option<screeps::Source> {
-        if let Ok(Some(target_string)) = self.0.memory().string("target") {
-            let target_id: ObjectId<screeps::Source> = target_string.parse().ok()?;
-            return screeps::game::get_object_typed(target_id).ok()?;
+    pub fn get_target_source(&self) -> Option<Source> {
+        let mut sources = Vec::new();
+        for room in screeps::game::rooms::values() {
+            if let Some(controller) = room.controller() {
+                if controller.my() {
+                    sources.extend(room.find(find::SOURCES));
+                }
+            }
         }
-
-        if let Ok(Some(target_string)) = screeps::memory::root().string("target") {
-            self.0.memory().set("target", &target_string);
-            screeps::memory::root().del("target");
-            let target_id: ObjectId<screeps::Source> = target_string.parse().ok()?;
-            return screeps::game::get_object_typed(target_id).ok()?;
+        debug!("Searching for harvest targets in {} soruces", sources.len());
+        for harvester in &self.harvesters {
+            if let Some(harvest_target_id) = harvester.get_harvest_target() {
+                if let Some(index) = sources
+                    .iter()
+                    .position(|x| x.untyped_id() == harvest_target_id)
+                {
+                    sources.remove(index);
+                } else {
+                    debug!("\tFound: {:?}", harvest_target_id);
+                }
+            }
         }
-
-        None
+        return sources.pop();
     }
 }

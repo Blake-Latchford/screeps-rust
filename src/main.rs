@@ -32,7 +32,10 @@ fn main() {
 
 fn game_loop() {
     debug!("loop starting! CPU: {}", screeps::game::cpu::get_used());
+    let creep_manager = creeps::CreepManager::new();
+    let mut spawn_manager = spawn::SpawnManager::new();
 
-    spawn::game_loop();
-    creeps::game_loop();
+    spawn_manager.game_loop(&creep_manager);
+    creep_manager.game_loop();
+    info!("done! cpu: {}", screeps::game::cpu::get_used())
 }

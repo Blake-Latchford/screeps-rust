@@ -1,23 +1,20 @@
+use super::creeps::harvester::{Harvester, HarvesterManager};
+use super::creeps::worker::{Worker, WorkerManager};
+use super::creeps::CreepManager;
 use log::*;
-use screeps::{find, prelude::*, ObjectId, Part, ResourceType, ReturnCode};
-
-pub fn game_loop() {
-    for spawn in screeps::game::spawns::values() {
-        Spawn(spawn).game_loop();
-    }
-}
+use screeps::{prelude::*, Part, ResourceType, ReturnCode};
 
 struct Spawn(screeps::StructureSpawn);
 
 impl Spawn {
-    fn game_loop(&mut self) {
+    fn game_loop(&mut self, creep_manager: &CreepManager) {
         debug!("running spawn {}", self.0.name());
 
         if self.0.is_spawning() {
             return;
         }
 
-        if let Some((body, name_prefix)) = self.get_spawn_target() {
+        if let Some((body, name_prefix)) = self.get_spawn_target(creep_manager) {
             let spawn_cost = body.iter().map(|p| p.cost()).sum();
             if self.0.energy() >= spawn_cost {
                 self.spawn_creep(&body, name_prefix);
@@ -25,34 +22,45 @@ impl Spawn {
         }
     }
 
-    fn get_spawn_target(&self) -> Option<(Vec<Part>, &'static str)> {
-        self.update_next_target_source();
-        if get_target(screeps::memory::root()).is_some() {
-            return Some(super::creeps::harvester::Harvester::get_description(
+    fn get_spawn_target(&self, creep_manager: &CreepManager) -> Option<(Vec<Part>, &'static str)> {
+        let harvester_spawn_target =
+            self.get_harvester_spawn_target(&creep_manager.harvester_manager);
+        if harvester_spawn_target.is_some() {
+            return harvester_spawn_target;
+        }
+
+        let worker_spawn_target = self.get_worker_spawn_target(&creep_manager.worker_manager);
+        if worker_spawn_target.is_some() {
+            return worker_spawn_target;
+        }
+
+        return None;
+    }
+
+    fn get_harvester_spawn_target(
+        &self,
+        harvester_manager: &HarvesterManager,
+    ) -> Option<(Vec<Part>, &'static str)> {
+        if harvester_manager.get_target_source().is_some() {
+            return Some(Harvester::get_description(
                 self.0.store_capacity(Some(ResourceType::Energy)),
             ));
         }
         return None;
     }
 
-    fn update_next_target_source(&self) {
-        if get_target(screeps::memory::root()).is_some() {
-            return;
+    fn get_worker_spawn_target(
+        &self,
+        worker_manager: &WorkerManager,
+    ) -> Option<(Vec<Part>, &'static str)> {
+        if worker_manager.workers.len() > 0 {
+            return None;
         }
-
-        let mut sources = self.0.room().find(find::SOURCES);
-        for creep in screeps::game::creeps::values() {
-            if let Some(creep_target) = get_target(creep.memory()) {
-                if let Some(index) = sources.iter().position(|x| *x == creep_target) {
-                    sources.remove(index);
-                }
-            }
-        }
-        sources.sort_by_key(|s| s.pos().get_range_to(&self.0.pos()));
-        if sources.len() > 0 {
-            screeps::memory::root().set("target", sources[0].id().to_string());
-        }
+        return Some(Worker::get_description(
+            self.0.store_capacity(Some(ResourceType::Energy)),
+        ));
     }
+
     fn spawn_creep(&mut self, body: &Vec<screeps::Part>, name_prefix: &str) {
         for i in 0..1000 {
             let name = name_prefix.to_owned() + &i.to_string();
@@ -67,8 +75,26 @@ impl Spawn {
     }
 }
 
-fn get_target(mem: screeps::memory::MemoryReference) -> Option<screeps::Source> {
-    let target_string = mem.string("target").ok()??;
-    let target_id: ObjectId<screeps::Source> = target_string.parse().ok()?;
-    screeps::game::get_object_typed(target_id).ok()?
+pub struct SpawnManager {
+    spawns: Vec<Spawn>,
+}
+
+impl SpawnManager {
+    pub fn new() -> SpawnManager {
+        let mut spawn_manager = SpawnManager { spawns: Vec::new() };
+        spawn_manager.register_all();
+        return spawn_manager;
+    }
+
+    fn register_all(&mut self) {
+        for spawn in screeps::game::spawns::values() {
+            self.spawns.push(Spawn(spawn));
+        }
+    }
+
+    pub fn game_loop(&mut self, creep_manager: &CreepManager) {
+        for spawn in &mut self.spawns {
+            spawn.game_loop(creep_manager);
+        }
+    }
 }
