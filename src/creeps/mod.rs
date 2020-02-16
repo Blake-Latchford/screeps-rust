@@ -1,5 +1,7 @@
 use log::*;
-use screeps::{RawObjectId, ResourceType, ReturnCode, Source, Structure, StructureController};
+use screeps::{
+    ConstructionSite, RawObjectId, ResourceType, ReturnCode, Source, Structure, StructureController,
+};
 use std::collections::HashSet;
 
 pub mod harvester;
@@ -13,6 +15,7 @@ enum Mode {
     TransferTo,
     TransferFrom,
     UpgradeController,
+    Build,
 }
 
 trait Creep {
@@ -41,19 +44,19 @@ trait Creep {
             return;
         }
 
-        match self.get_mode() {
+        let mode = self.get_mode();
+        debug!("Execute {:?}", mode);
+        match mode {
             Some(Mode::TransferTo) => self.transfer_to(),
             Some(Mode::TransferFrom) => self.transfer_from(),
             Some(Mode::Harvest) => self.harvest(),
             Some(Mode::UpgradeController) => self.upgrade_controller(),
+            Some(Mode::Build) => self.build(),
             None => warn!("No mode selected!"),
         }
     }
 
     fn transfer_to(&self) {
-        assert!(self.has_target());
-        debug!("Execute transfer_to");
-
         if let Some(target_structure) = self.get_target::<Structure>() {
             if let Some(target_transferable) = target_structure.as_transferable() {
                 let return_code = self
@@ -71,22 +74,18 @@ trait Creep {
     }
 
     fn upgrade_controller(&self) {
-        assert!(self.has_target());
-        debug!("Execute upgrade_controller");
-
         if let Some(target_controller) = self.get_target::<StructureController>() {
             let return_code = self.get_creep().upgrade_controller(&target_controller);
             if return_code != ReturnCode::Ok {
                 debug!("Failed upgrade_controller: {:?}", return_code);
             }
         } else {
-            debug!("Transfer to target is not a structure.");
+            error!("Transfer to target is not a structure.");
         }
     }
 
     fn transfer_from(&self) {
         assert!(self.has_target());
-        debug!("Execute transfer_from");
 
         let target_structure = self.get_target::<Structure>().unwrap();
         let target_withdrawable = target_structure.as_withdrawable().unwrap();
@@ -100,12 +99,22 @@ trait Creep {
 
     fn harvest(&self) {
         assert!(self.has_target());
-        debug!("Execute harvest");
 
         let source = self.get_target::<Source>().unwrap();
         let return_code = self.get_creep().harvest(&source);
         if return_code != ReturnCode::Ok {
             debug!("Failed harvest: {:?}", return_code);
+        }
+    }
+
+    fn build(&self) {
+        if let Some(construction_site) = self.get_target::<ConstructionSite>() {
+            let return_code = self.get_creep().build(&construction_site);
+            if return_code != ReturnCode::Ok {
+                debug!("Failed build: {:?}", return_code);
+            }
+        } else {
+            error!("Target is not a construction site.");
         }
     }
 
@@ -128,6 +137,7 @@ trait Creep {
                 "tt" => Some(Mode::TransferTo),
                 "tf" => Some(Mode::TransferFrom),
                 "u" => Some(Mode::UpgradeController),
+                "b" => Some(Mode::Build),
                 _ => None,
             };
 
@@ -155,6 +165,7 @@ trait Creep {
             Mode::TransferTo => "tt",
             Mode::TransferFrom => "tf",
             Mode::UpgradeController => "u",
+            Mode::Build => "b",
         };
         self.get_creep().memory().set("mode", mode_string);
         self.set_target(None);

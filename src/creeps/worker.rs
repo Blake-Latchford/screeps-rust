@@ -1,7 +1,7 @@
 use super::Creep;
 use super::Mode;
 use log::*;
-use screeps::{prelude::*, Part, RawObjectId};
+use screeps::{prelude::*, ConstructionSite, Part, RawObjectId};
 
 pub const NAME_PREFIX: &'static str = "worker";
 
@@ -14,7 +14,11 @@ impl Creep for Worker {
 
     fn update_mode(&self) {
         if self.get_creep().store_free_capacity(None) == 0 {
-            self.set_mode(Mode::UpgradeController);
+            if self.should_upgrade() {
+                self.set_mode(Mode::UpgradeController);
+            } else if self.get_build_target().is_some() {
+                self.set_mode(Mode::Build);
+            }
         } else if self.get_creep().store_used_capacity(None) == 0 {
             self.set_mode(Mode::TransferFrom);
         }
@@ -64,6 +68,32 @@ impl Worker {
 
     fn get_transfer_from_target(&self) -> Option<RawObjectId> {
         Some(screeps::game::spawns::values().pop()?.untyped_id())
+    }
+
+    fn should_upgrade(&self) -> bool {
+        if let Some(controller) = self.get_creep().room().controller() {
+            if controller.level() <= 0 {
+                return true;
+            }
+            if controller.ticks_to_downgrade() < 5000 {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    fn get_build_target(&self) -> Option<ConstructionSite> {
+        let last_site = screeps::game::construction_sites::values().pop();
+        if last_site.is_some() {
+            return last_site;
+        }
+
+        return self.make_new_construction_site();
+    }
+
+    fn make_new_construction_site(&self) -> Option<ConstructionSite> {
+        return None;
     }
 }
 
