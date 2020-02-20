@@ -45,7 +45,7 @@ trait Creep {
         }
 
         let mode = self.get_mode();
-        debug!("Execute {:?}", mode);
+        debug!("Execute mode {:?}", mode);
         match mode {
             Some(Mode::TransferTo) => self.transfer_to(),
             Some(Mode::TransferFrom) => self.transfer_from(),
@@ -62,8 +62,14 @@ trait Creep {
                 let return_code = self
                     .get_creep()
                     .transfer_all(target_transferable, ResourceType::Energy);
-                if return_code != ReturnCode::Ok {
+                if return_code == ReturnCode::NotInRange {
                     debug!("Failed transfer_to: {:?}", return_code);
+                } else if return_code != ReturnCode::Ok {
+                    error!(
+                        "Failed transfer_to '{:?}': {:?}",
+                        self.get_stored_id(TARGET),
+                        return_code
+                    );
                 }
             } else {
                 error!("Transfer to target is not transferable or upgradable");

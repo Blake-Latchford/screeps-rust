@@ -6,7 +6,7 @@ mod logging;
 mod spawn;
 
 fn main() {
-    logging::setup_logging(logging::Info);
+    logging::setup_logging(logging::Debug);
 
     js! {
         var game_loop = @{game_loop};
