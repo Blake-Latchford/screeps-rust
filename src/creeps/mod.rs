@@ -1,4 +1,5 @@
 use log::*;
+use screeps::objects::HasPosition;
 use screeps::{
     ConstructionSite, RawObjectId, ResourceType, ReturnCode, Source, Structure, StructureController,
 };
@@ -127,12 +128,42 @@ trait Creep {
     fn move_to_target(&self) {
         if let Some(target_id) = self.get_stored_id(TARGET) {
             if let Some(target) = screeps::game::get_object_erased(target_id) {
-                self.get_creep().move_to(&target);
+                if target.pos() != self.get_creep().pos() {
+                    let return_code = self.get_creep().move_to(&target);
+                    if return_code == ReturnCode::Tired {
+                        debug!("Waiting for fatigue");
+                    } else if return_code != ReturnCode::Ok {
+                        debug!("Failed move: {:?}", return_code);
+                    }
+                } else {
+                    self.move_random_direction();
+                }
             } else {
                 warn!("Invalid move target id: {}", target_id);
             }
         } else {
             debug!("No move target");
+        }
+    }
+
+    fn move_random_direction(&self) {
+        let directions = [
+            screeps::Direction::Top,
+            screeps::Direction::TopRight,
+            screeps::Direction::Right,
+            screeps::Direction::BottomRight,
+            screeps::Direction::Bottom,
+            screeps::Direction::BottomLeft,
+            screeps::Direction::Left,
+            screeps::Direction::TopLeft,
+        ];
+        for direction in directions.iter() {
+            let return_code = self.get_creep().move_direction(*direction);
+            if return_code == ReturnCode::Ok {
+                break;
+            } else {
+                debug!("Failed move {:?}: {:?}", direction, return_code);
+            }
         }
     }
 
