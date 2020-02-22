@@ -56,6 +56,7 @@ impl Harvester {
     }
 
     fn set_harvest_target_source(&self, source: screeps::Source) {
+        debug!("setting new source: {:?}", source.id());
         self.get_creep()
             .memory()
             .set("harvest", source.id().to_string());
@@ -78,15 +79,22 @@ impl HarvesterManager {
     }
 
     pub fn register(&mut self, creep: screeps::Creep) {
-        let harvester = Harvester(creep);
-        if harvester.get_harvest_target().is_none() {
-            if let Some(target_source) = self.get_target_source() {
-                harvester.set_harvest_target_source(target_source);
-            } else {
-                warn!("Failed to find target for harvester.");
+        self.harvesters.push(Harvester(creep));
+    }
+
+    pub fn game_loop(&self) {
+        if let Some(target_source) = self.get_target_source() {
+            for harvester in &self.harvesters {
+                if harvester.get_harvest_target().is_none() {
+                    harvester.set_harvest_target_source(target_source);
+                    break;
+                }
             }
         }
-        self.harvesters.push(harvester);
+
+        for harvester in &self.harvesters {
+            harvester.game_loop();
+        }
     }
 
     pub fn get_target_source(&self) -> Option<Source> {
@@ -98,7 +106,6 @@ impl HarvesterManager {
                 }
             }
         }
-        debug!("Searching for harvest targets in {} soruces", sources.len());
         for harvester in &self.harvesters {
             if let Some(harvest_target_id) = harvester.get_harvest_target() {
                 if let Some(index) = sources
@@ -106,10 +113,11 @@ impl HarvesterManager {
                     .position(|x| x.untyped_id() == harvest_target_id)
                 {
                     sources.remove(index);
-                } else {
-                    debug!("\tFound: {:?}", harvest_target_id);
                 }
             }
+        }
+        if let Some(target_source) = sources.last() {
+            debug!("Found untargeted source: {:?}", target_source.id());
         }
         return sources.pop();
     }

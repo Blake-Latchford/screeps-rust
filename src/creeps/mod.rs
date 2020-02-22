@@ -286,9 +286,7 @@ impl CreepManager {
     pub fn game_loop(&self) {
         debug!("running creeps");
 
-        for harvester in &self.harvester_manager.harvesters {
-            harvester.game_loop();
-        }
+        self.harvester_manager.game_loop();
         for worker in &self.worker_manager.workers {
             worker.game_loop();
         }
