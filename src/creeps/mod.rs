@@ -206,6 +206,10 @@ trait Creep {
         };
         self.get_creep().memory().set("mode", mode_string);
         self.set_target(None);
+        let return_code = self.get_creep().say(mode_string, false);
+        if return_code != ReturnCode::Ok {
+            debug!("say: {:?}", return_code);
+        }
     }
 
     fn has_target(&self) -> bool {
