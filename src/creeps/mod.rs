@@ -1,7 +1,8 @@
 use log::*;
 use screeps::objects::HasPosition;
 use screeps::{
-    ConstructionSite, RawObjectId, ResourceType, ReturnCode, Source, Structure, StructureController,
+    prelude::*, ConstructionSite, RawObjectId, ResourceType, ReturnCode, Source, Structure,
+    StructureController,
 };
 use std::collections::HashSet;
 
@@ -17,6 +18,7 @@ enum Mode {
     TransferFrom,
     UpgradeController,
     Build,
+    Idle,
 }
 
 trait Creep {
@@ -30,16 +32,20 @@ trait Creep {
             return;
         }
 
+        self.update_mode_and_target();
         self.execute_mode();
-        self.update_mode();
+        self.update_mode_and_target();
         self.move_to_target();
     }
 
-    fn execute_mode(&self) {
+    fn update_mode_and_target(&self) {
+        self.update_mode();
         if !self.has_target() {
             self.update_target();
         }
+    }
 
+    fn execute_mode(&self) {
         if !self.has_target() {
             warn!("No target selected!");
             return;
@@ -53,6 +59,7 @@ trait Creep {
             Some(Mode::Harvest) => self.harvest(),
             Some(Mode::UpgradeController) => self.upgrade_controller(),
             Some(Mode::Build) => self.build(),
+            Some(Mode::Idle) => self.idle(),
             None => warn!("No mode selected!"),
         }
     }
@@ -125,6 +132,10 @@ trait Creep {
         }
     }
 
+    fn idle(&self) {
+        debug!("Idle");
+    }
+
     fn move_to_target(&self) {
         if let Some(target_id) = self.get_stored_id(TARGET) {
             if let Some(target) = screeps::game::get_object_erased(target_id) {
@@ -175,6 +186,7 @@ trait Creep {
                 "tf" => Some(Mode::TransferFrom),
                 "u" => Some(Mode::UpgradeController),
                 "b" => Some(Mode::Build),
+                "i" => Some(Mode::Idle),
                 _ => None,
             };
 
@@ -203,6 +215,7 @@ trait Creep {
             Mode::TransferFrom => "tf",
             Mode::UpgradeController => "u",
             Mode::Build => "b",
+            Mode::Idle => "i",
         };
         self.get_creep().memory().set("mode", mode_string);
         self.set_target(None);
@@ -254,6 +267,22 @@ trait Creep {
         } else {
             self.get_creep().memory().del(TARGET);
         }
+    }
+
+    fn is_mode(&self, mode: Mode) -> bool {
+        self.get_mode() == Some(mode)
+    }
+
+    fn has_capacity(&self) -> bool {
+        self.get_creep().store_free_capacity(None) != 0
+    }
+
+    fn is_full(&self) -> bool {
+        self.get_creep().store_free_capacity(None) == 0
+    }
+
+    fn is_empty(&self) -> bool {
+        self.get_creep().store_used_capacity(None) == 0
     }
 }
 

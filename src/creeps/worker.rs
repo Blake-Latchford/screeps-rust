@@ -12,18 +12,14 @@ impl Creep for Worker {
     }
 
     fn update_mode(&self) {
-        if self.get_creep().store_free_capacity(None) == 0 {
-            debug!("Creep at capacity.");
-            if self.should_upgrade() {
-                self.set_mode(Mode::UpgradeController);
-            } else if self.get_build_target().is_some() {
-                debug!("Has build target.");
-                self.set_mode(Mode::Build);
-            } else {
-                error!("No viable mode.");
-            }
-        } else if self.get_creep().store_used_capacity(None) == 0 {
+        if self.should_start_upgrade() {
+            self.set_mode(Mode::UpgradeController);
+        } else if self.should_start_build() {
+            self.set_mode(Mode::Build);
+        } else if self.should_start_transfer_from() {
             self.set_mode(Mode::TransferFrom);
+        } else if self.should_start_idle() {
+            self.set_mode(Mode::Idle);
         }
     }
 
@@ -33,6 +29,7 @@ impl Creep for Worker {
                 Mode::UpgradeController => self.get_upgrade_controller_target(),
                 Mode::TransferFrom => self.get_transfer_from_target(),
                 Mode::Build => self.get_build_target(),
+                Mode::Idle => self.get_idle_target(),
                 _ => None,
             };
             self.set_target(target_id);
@@ -66,15 +63,11 @@ impl Worker {
         (result, NAME_PREFIX)
     }
 
-    fn get_upgrade_controller_target(&self) -> Option<RawObjectId> {
-        Some(self.get_creep().room().controller()?.untyped_id())
-    }
+    fn should_start_upgrade(&self) -> bool {
+        if !self.is_mode(Mode::Idle) && self.has_capacity() {
+            return false;
+        }
 
-    fn get_transfer_from_target(&self) -> Option<RawObjectId> {
-        Some(screeps::game::spawns::values().pop()?.untyped_id())
-    }
-
-    fn should_upgrade(&self) -> bool {
         if let Some(controller) = self.get_creep().room().controller() {
             if controller.level() <= 1 {
                 return true;
@@ -83,8 +76,47 @@ impl Worker {
                 return true;
             }
         }
+        return false;
+    }
+
+    fn should_start_transfer_from(&self) -> bool {
+        if !self.is_mode(Mode::Idle) && !self.is_empty() {
+            return false;
+        }
+
+        if let Some(spawn) = screeps::game::spawns::values().pop() {
+            if spawn.store_free_capacity(Some(screeps::ResourceType::Energy)) == 0 {
+                return true;
+            }
+        }
 
         return false;
+    }
+
+    fn should_start_build(&self) -> bool {
+        if self.is_full() && self.get_build_target().is_some() {
+            return true;
+        }
+
+        return false;
+    }
+
+    fn should_start_idle(&self) -> bool {
+        if let Some(spawn) = screeps::game::spawns::values().pop() {
+            if spawn.store_free_capacity(None) != 0 {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    fn get_upgrade_controller_target(&self) -> Option<RawObjectId> {
+        Some(self.get_creep().room().controller()?.untyped_id())
+    }
+
+    fn get_transfer_from_target(&self) -> Option<RawObjectId> {
+        Some(screeps::game::spawns::values().pop()?.untyped_id())
     }
 
     fn get_build_target(&self) -> Option<RawObjectId> {
@@ -93,6 +125,10 @@ impl Worker {
         }
 
         return self.make_new_construction_site();
+    }
+
+    fn get_idle_target(&self) -> Option<RawObjectId> {
+        Some(screeps::game::spawns::values().pop()?.untyped_id())
     }
 
     fn make_new_construction_site(&self) -> Option<RawObjectId> {
