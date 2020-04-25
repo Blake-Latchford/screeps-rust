@@ -98,6 +98,14 @@ impl HarvesterManager {
     }
 
     pub fn get_target_source(&self) -> Option<Source> {
+        let sources = self.get_unallocated_sources();
+        if let Some(target_source) = sources.last() {
+            debug!("Found untargeted source: {:?}", target_source.id());
+        }
+        return sources.last().cloned();
+    }
+
+    fn get_my_sources() -> Vec<Source> {
         let mut sources = Vec::new();
         for room in screeps::game::rooms::values() {
             if let Some(controller) = room.controller() {
@@ -106,6 +114,11 @@ impl HarvesterManager {
                 }
             }
         }
+        return sources;
+    }
+
+    fn get_unallocated_sources(&self) -> Vec<Source> {
+        let mut sources = HarvesterManager::get_my_sources();
         for harvester in &self.harvesters {
             if let Some(harvest_target_id) = harvester.get_harvest_target() {
                 if let Some(index) = sources
@@ -116,9 +129,6 @@ impl HarvesterManager {
                 }
             }
         }
-        if let Some(target_source) = sources.last() {
-            debug!("Found untargeted source: {:?}", target_source.id());
-        }
-        return sources.pop();
+        return sources;
     }
 }
