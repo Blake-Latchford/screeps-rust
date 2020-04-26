@@ -4,7 +4,7 @@ use log::*;
 use screeps::{find, prelude::*, ConstructionSite, Part, Position, RawObjectId};
 pub const NAME_PREFIX: &'static str = "worker";
 
-pub struct Worker(screeps::Creep);
+pub struct Worker(pub screeps::Creep);
 
 impl Creep for Worker {
     fn get_creep(&self) -> &screeps::Creep {
@@ -236,21 +236,5 @@ impl Worker {
         let mut result: Position = origin;
         result.offset(x_offset, y_offset);
         return result;
-    }
-}
-
-pub struct WorkerManager {
-    pub workers: Vec<Worker>,
-}
-
-impl WorkerManager {
-    pub fn default() -> WorkerManager {
-        WorkerManager {
-            workers: Vec::new(),
-        }
-    }
-
-    pub fn register(&mut self, creep: screeps::Creep) {
-        self.workers.push(Worker(creep));
     }
 }

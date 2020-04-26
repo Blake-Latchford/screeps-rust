@@ -290,7 +290,7 @@ trait Creep {
 }
 
 pub struct CreepManager {
-    pub worker_manager: worker::WorkerManager,
+    pub workers: Vec<worker::Worker>,
     pub harvester_manager: harvester::HarvesterManager,
 }
 
@@ -299,7 +299,7 @@ impl CreepManager {
         debug!("register creeps");
         let mut creep_manager = CreepManager {
             harvester_manager: harvester::HarvesterManager::default(),
-            worker_manager: worker::WorkerManager::default(),
+            workers: vec![],
         };
         creep_manager.register_all_creeps();
         return creep_manager;
@@ -310,7 +310,7 @@ impl CreepManager {
             if creep.name().starts_with(harvester::NAME_PREFIX) {
                 self.harvester_manager.register(creep);
             } else if creep.name().starts_with(worker::NAME_PREFIX) {
-                self.worker_manager.register(creep);
+                self.workers.push(worker::Worker(creep));
             }
         }
     }
@@ -319,7 +319,7 @@ impl CreepManager {
         debug!("running creeps");
 
         self.harvester_manager.game_loop();
-        for worker in &self.worker_manager.workers {
+        for worker in &self.workers {
             worker.game_loop();
         }
         CreepManager::cleanup_memory()

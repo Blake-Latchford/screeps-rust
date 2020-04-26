@@ -1,5 +1,5 @@
 use super::creeps::harvester::{Harvester, HarvesterManager};
-use super::creeps::worker::{Worker, WorkerManager};
+use super::creeps::worker::Worker;
 use super::creeps::CreepManager;
 use log::*;
 use screeps::{prelude::*, Part, ResourceType, ReturnCode};
@@ -51,11 +51,8 @@ impl Spawn {
         return None;
     }
 
-    fn get_worker_spawn_target(
-        &self,
-        worker_manager: &WorkerManager,
-    ) -> Option<(Vec<Part>, &'static str)> {
-        if worker_manager.workers.len() > 0 {
+    fn get_worker_spawn_target(&self, workers: &Vec<Worker>) -> Option<(Vec<Part>, &'static str)> {
+        if workers.len() > 0 {
             return None;
         }
         return Some(Worker::get_description(
