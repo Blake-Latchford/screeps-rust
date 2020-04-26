@@ -1,8 +1,6 @@
 use super::{Creep, Mode};
 use log::*;
-use screeps::{find, prelude::*, Part, RawObjectId, Source};
-use std::collections::HashMap;
-use std::convert::TryInto;
+use screeps::{prelude::*, Part, RawObjectId};
 
 pub const NAME_PREFIX: &'static str = "harvester";
 pub struct Harvester(pub screeps::Creep);
@@ -57,23 +55,10 @@ impl Harvester {
     }
 
     fn get_harvest_target(&self) -> Option<RawObjectId> {
-        let stored_harvest_target = self.get_stored_id("harvest");
-        if stored_harvest_target.is_none() {
-            debug!("{} has no target", self.get_creep().name());
-            if let Some(target_source) = Harvester::get_target_source() {
-                info!(
-                    "Allocateed source {} to {}",
-                    target_source.id(),
-                    self.get_creep().name()
-                );
-                self.set_harvest_target_source(target_source);
-                return self.get_stored_id("harvest");
-            }
-        }
-        return stored_harvest_target;
+        return self.get_stored_id("harvest");
     }
 
-    fn set_harvest_target_source(&self, source: screeps::Source) {
+    pub fn set_harvest_target_source(&self, source: screeps::Source) {
         debug!("setting new source: {:?}", source.id());
         self.get_creep()
             .memory()
@@ -84,74 +69,8 @@ impl Harvester {
         Some(screeps::game::spawns::values().pop()?.untyped_id())
     }
 
-    fn consumtpion_rate(&self) -> u32 {
+    pub fn consumtpion_rate(&self) -> u32 {
         return screeps::constants::HARVEST_POWER
             * self.get_creep().get_active_bodyparts(Part::Work);
-    }
-
-    pub fn get_target_source() -> Option<Source> {
-        let mut harvesters = vec![];
-        for creep in screeps::game::creeps::values() {
-            if creep.name().starts_with(NAME_PREFIX) {
-                harvesters.push(Harvester(creep));
-            }
-        }
-
-        return Harvester::get_source_with_most_capacity(&harvesters);
-    }
-
-    fn get_source_with_most_capacity(harvesters: &Vec<Harvester>) -> Option<Source> {
-        let source_id = Harvester::source_creep_map(harvesters)
-            .drain()
-            .max_by_key(|(k, v)| Harvester::wasted_input_rate(&k, &v))?
-            .0;
-        debug!("{}:{}", file!(), line!());
-        return screeps::game::get_object_typed::<Source>(source_id.into()).ok()?;
-    }
-
-    fn source_creep_map(harvesters: &Vec<Harvester>) -> HashMap<RawObjectId, Vec<&Harvester>> {
-        let mut result = HashMap::new();
-
-        for source in Harvester::get_my_sources() {
-            result.insert(source.untyped_id(), vec![]);
-        }
-
-        for harvester in harvesters {
-            if let Some(source_id) = harvester.get_stored_id("harvest") {
-                result.get_mut(&source_id).unwrap().push(harvester);
-            }
-        }
-
-        return result;
-    }
-
-    fn get_my_sources() -> Vec<Source> {
-        let mut sources = Vec::new();
-        for room in screeps::game::rooms::values() {
-            if let Some(controller) = room.controller() {
-                if controller.my() {
-                    sources.extend(room.find(find::SOURCES));
-                }
-            }
-        }
-        return sources;
-    }
-
-    fn wasted_input_rate(source_id: &RawObjectId, harvesters: &Vec<&Harvester>) -> i32 {
-        let source = screeps::game::get_object_typed::<Source>((*source_id).into())
-            .unwrap()
-            .unwrap();
-        let input_rate: i32 = Harvester::input_rate(source).try_into().unwrap();
-        let output_rate: i32 = Harvester::output_rate(harvesters).try_into().unwrap();
-
-        return input_rate - output_rate;
-    }
-
-    fn input_rate(source: Source) -> u32 {
-        return source.energy_capacity() / screeps::constants::ENERGY_REGEN_TIME;
-    }
-
-    fn output_rate(harvesters: &Vec<&Harvester>) -> u32 {
-        return harvesters.iter().map(|h| h.consumtpion_rate()).sum();
     }
 }

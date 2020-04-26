@@ -1,5 +1,6 @@
-use super::creeps::harvester::Harvester;
-use super::creeps::worker::Worker;
+use crate::allocator::harvester_allocator;
+use crate::creeps::harvester::Harvester;
+use crate::creeps::worker::Worker;
 use log::*;
 use screeps::{prelude::*, Part, ResourceType, ReturnCode};
 
@@ -32,7 +33,7 @@ impl Spawn {
 
     fn get_harvester_spawn_target(&self) -> Option<(Vec<Part>, &'static str)> {
         debug!("Check for harvester targets.");
-        if Harvester::get_target_source().is_some() {
+        if harvester_allocator::get_target_source().is_some() {
             let store_capacity = self.0.store_capacity(Some(ResourceType::Energy));
             if store_capacity > 0 {
                 return Some(Harvester::get_description(store_capacity));

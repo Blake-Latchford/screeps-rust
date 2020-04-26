@@ -1,6 +1,7 @@
 use log::*;
 use stdweb::js;
 
+mod allocator;
 mod creeps;
 mod logging;
 mod spawn;
@@ -31,6 +32,7 @@ fn main() {
 
 fn game_loop() {
     debug!("loop starting! CPU: {}", screeps::game::cpu::get_used());
+    allocator::allocate_creeps();
     let creep_manager = creeps::CreepManager::new();
     let mut spawn_manager = spawn::SpawnManager::new();
 

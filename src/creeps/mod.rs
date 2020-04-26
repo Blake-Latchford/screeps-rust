@@ -12,7 +12,7 @@ pub mod worker;
 const TARGET: &'static str = "target";
 
 #[derive(PartialEq, Debug)]
-enum Mode {
+pub enum Mode {
     Harvest,
     TransferTo,
     TransferFrom,
@@ -21,7 +21,7 @@ enum Mode {
     Idle,
 }
 
-trait Creep {
+pub trait Creep {
     fn get_creep(&self) -> &screeps::Creep;
     fn get_new_mode(&self) -> Option<Mode>;
     fn get_new_target(&self) -> Option<RawObjectId>;
