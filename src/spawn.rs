@@ -29,11 +29,6 @@ impl Spawn {
             return harvester_spawn_target;
         }
 
-        let worker_spawn_target = self.get_worker_spawn_target(&creep_manager.worker_manager);
-        if worker_spawn_target.is_some() {
-            return worker_spawn_target;
-        }
-
         return None;
     }
 
@@ -41,10 +36,17 @@ impl Spawn {
         &self,
         harvester_manager: &HarvesterManager,
     ) -> Option<(Vec<Part>, &'static str)> {
+        debug!("Check for harvester targets.");
         if harvester_manager.get_target_source().is_some() {
-            return Some(Harvester::get_description(
-                self.0.store_capacity(Some(ResourceType::Energy)),
-            ));
+            debug!("{}:{}", file!(), line!());
+            let store_capacity = self.0.store_capacity(Some(ResourceType::Energy));
+            if store_capacity > 0 {
+                return Some(Harvester::get_description(store_capacity));
+            } else {
+                error!("Store has no capacity!");
+            }
+        } else {
+            debug!("No harvester targets");
         }
         return None;
     }
