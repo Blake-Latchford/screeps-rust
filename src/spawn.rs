@@ -1,20 +1,19 @@
-use super::creeps::harvester::{Harvester, HarvesterManager};
+use super::creeps::harvester::Harvester;
 use super::creeps::worker::Worker;
-use super::creeps::CreepManager;
 use log::*;
 use screeps::{prelude::*, Part, ResourceType, ReturnCode};
 
 struct Spawn(screeps::StructureSpawn);
 
 impl Spawn {
-    fn game_loop(&mut self, creep_manager: &CreepManager) {
+    fn game_loop(&mut self) {
         debug!("running spawn {}", self.0.name());
 
         if self.0.is_spawning() {
             return;
         }
 
-        if let Some((body, name_prefix)) = self.get_spawn_target(creep_manager) {
+        if let Some((body, name_prefix)) = self.get_spawn_target() {
             let spawn_cost = body.iter().map(|p| p.cost()).sum();
             if self.0.energy() >= spawn_cost {
                 self.spawn_creep(&body, name_prefix);
@@ -22,9 +21,8 @@ impl Spawn {
         }
     }
 
-    fn get_spawn_target(&self, creep_manager: &CreepManager) -> Option<(Vec<Part>, &'static str)> {
-        let harvester_spawn_target =
-            self.get_harvester_spawn_target(&creep_manager.harvester_manager);
+    fn get_spawn_target(&self) -> Option<(Vec<Part>, &'static str)> {
+        let harvester_spawn_target = self.get_harvester_spawn_target();
         if harvester_spawn_target.is_some() {
             return harvester_spawn_target;
         }
@@ -32,13 +30,9 @@ impl Spawn {
         return None;
     }
 
-    fn get_harvester_spawn_target(
-        &self,
-        harvester_manager: &HarvesterManager,
-    ) -> Option<(Vec<Part>, &'static str)> {
+    fn get_harvester_spawn_target(&self) -> Option<(Vec<Part>, &'static str)> {
         debug!("Check for harvester targets.");
-        if harvester_manager.get_target_source().is_some() {
-            debug!("{}:{}", file!(), line!());
+        if Harvester::get_target_source().is_some() {
             let store_capacity = self.0.store_capacity(Some(ResourceType::Energy));
             if store_capacity > 0 {
                 return Some(Harvester::get_description(store_capacity));
@@ -91,9 +85,9 @@ impl SpawnManager {
         }
     }
 
-    pub fn game_loop(&mut self, creep_manager: &CreepManager) {
+    pub fn game_loop(&mut self) {
         for spawn in &mut self.spawns {
-            spawn.game_loop(creep_manager);
+            spawn.game_loop();
         }
     }
 }

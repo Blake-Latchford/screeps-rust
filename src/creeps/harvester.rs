@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 
 pub const NAME_PREFIX: &'static str = "harvester";
-pub struct Harvester(screeps::Creep);
+pub struct Harvester(pub screeps::Creep);
 
 impl super::Creep for Harvester {
     fn get_creep(&self) -> &screeps::Creep {
@@ -57,7 +57,20 @@ impl Harvester {
     }
 
     fn get_harvest_target(&self) -> Option<RawObjectId> {
-        self.get_stored_id("harvest")
+        let stored_harvest_target = self.get_stored_id("harvest");
+        if stored_harvest_target.is_none() {
+            debug!("{} has no target", self.get_creep().name());
+            if let Some(target_source) = Harvester::get_target_source() {
+                info!(
+                    "Allocateed source {} to {}",
+                    target_source.id(),
+                    self.get_creep().name()
+                );
+                self.set_harvest_target_source(target_source);
+                return self.get_stored_id("harvest");
+            }
+        }
+        return stored_harvest_target;
     }
 
     fn set_harvest_target_source(&self, source: screeps::Source) {
@@ -75,42 +88,22 @@ impl Harvester {
         return screeps::constants::HARVEST_POWER
             * self.get_creep().get_active_bodyparts(Part::Work);
     }
-}
 
-pub struct HarvesterManager {
-    pub harvesters: Vec<Harvester>,
-}
-
-impl HarvesterManager {
-    pub fn default() -> HarvesterManager {
-        HarvesterManager {
-            harvesters: Vec::new(),
-        }
-    }
-
-    pub fn register(&mut self, creep: screeps::Creep) {
-        self.harvesters.push(Harvester(creep));
-    }
-
-    pub fn game_loop(&self) {
-        if let Some(target_source) = self.get_target_source() {
-            for harvester in &self.harvesters {
-                if harvester.get_harvest_target().is_none() {
-                    harvester.set_harvest_target_source(target_source);
-                    break;
-                }
+    pub fn get_target_source() -> Option<Source> {
+        let mut harvesters = vec![];
+        for creep in screeps::game::creeps::values() {
+            if creep.name().starts_with(NAME_PREFIX) {
+                harvesters.push(Harvester(creep));
             }
         }
 
-        for harvester in &self.harvesters {
-            harvester.game_loop();
-        }
+        return Harvester::get_source_with_most_capacity(&harvesters);
     }
 
-    pub fn get_target_source(&self) -> Option<Source> {
-        let source_id = HarvesterManager::source_creep_map(&self.harvesters)
+    fn get_source_with_most_capacity(harvesters: &Vec<Harvester>) -> Option<Source> {
+        let source_id = Harvester::source_creep_map(harvesters)
             .drain()
-            .max_by_key(|(k, v)| HarvesterManager::wasted_input_rate(&k, &v))?
+            .max_by_key(|(k, v)| Harvester::wasted_input_rate(&k, &v))?
             .0;
         debug!("{}:{}", file!(), line!());
         return screeps::game::get_object_typed::<Source>(source_id.into()).ok()?;
@@ -119,12 +112,12 @@ impl HarvesterManager {
     fn source_creep_map(harvesters: &Vec<Harvester>) -> HashMap<RawObjectId, Vec<&Harvester>> {
         let mut result = HashMap::new();
 
-        for source in HarvesterManager::get_my_sources() {
+        for source in Harvester::get_my_sources() {
             result.insert(source.untyped_id(), vec![]);
         }
 
         for harvester in harvesters {
-            if let Some(source_id) = harvester.get_harvest_target() {
+            if let Some(source_id) = harvester.get_stored_id("harvest") {
                 result.get_mut(&source_id).unwrap().push(harvester);
             }
         }
@@ -148,10 +141,8 @@ impl HarvesterManager {
         let source = screeps::game::get_object_typed::<Source>((*source_id).into())
             .unwrap()
             .unwrap();
-        let input_rate: i32 = HarvesterManager::input_rate(source).try_into().unwrap();
-        let output_rate: i32 = HarvesterManager::output_rate(harvesters)
-            .try_into()
-            .unwrap();
+        let input_rate: i32 = Harvester::input_rate(source).try_into().unwrap();
+        let output_rate: i32 = Harvester::output_rate(harvesters).try_into().unwrap();
 
         return input_rate - output_rate;
     }

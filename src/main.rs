@@ -34,7 +34,7 @@ fn game_loop() {
     let creep_manager = creeps::CreepManager::new();
     let mut spawn_manager = spawn::SpawnManager::new();
 
-    spawn_manager.game_loop(&creep_manager);
+    spawn_manager.game_loop();
     creep_manager.game_loop();
     info!("done! cpu: {}", screeps::game::cpu::get_used())
 }
