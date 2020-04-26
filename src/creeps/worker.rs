@@ -11,31 +11,33 @@ impl Creep for Worker {
         return &self.0;
     }
 
-    fn update_mode(&self) {
+    fn get_new_mode(&self) -> Option<Mode> {
         if self.should_start_upgrade() {
-            self.set_mode(Mode::UpgradeController);
+            return Some(Mode::UpgradeController);
         } else if self.should_start_build() {
-            self.set_mode(Mode::Build);
+            return Some(Mode::Build);
         } else if self.should_start_transfer_from() {
-            self.set_mode(Mode::TransferFrom);
+            return Some(Mode::TransferFrom);
         } else if self.should_start_idle() {
-            self.set_mode(Mode::Idle);
+            return Some(Mode::Idle);
         }
+
+        return None;
     }
 
-    fn update_target(&self) {
+    fn get_new_target(&self) -> Option<RawObjectId> {
         if let Some(mode) = self.get_mode() {
-            let target_id = match mode {
+            return match mode {
                 Mode::UpgradeController => self.get_upgrade_controller_target(),
                 Mode::TransferFrom => self.get_transfer_from_target(),
                 Mode::Build => self.get_build_target(),
                 Mode::Idle => self.get_idle_target(),
                 _ => None,
             };
-            self.set_target(target_id);
-        } else {
-            warn!("No mode selected.")
         }
+
+        warn!("No mode selected.");
+        None
     }
 }
 

@@ -12,25 +12,26 @@ impl super::Creep for Harvester {
         return &self.0;
     }
 
-    fn update_mode(&self) {
+    fn get_new_mode(&self) -> Option<Mode> {
         if self.get_creep().store_free_capacity(None) == 0 {
-            self.set_mode(Mode::TransferTo);
+            return Some(Mode::TransferTo);
         } else if self.get_creep().store_used_capacity(None) == 0 {
-            self.set_mode(Mode::Harvest);
+            return Some(Mode::Harvest);
         }
+
+        return None;
     }
 
-    fn update_target(&self) {
+    fn get_new_target(&self) -> Option<RawObjectId> {
         if let Some(mode) = self.get_mode() {
-            let target_id = match mode {
+            return match mode {
                 Mode::TransferTo => self.get_transfer_target(),
                 Mode::Harvest => self.get_harvest_target(),
                 _ => None,
             };
-            self.set_target(target_id);
-        } else {
-            warn!("No mode selected.");
         }
+        warn!("No mode selected.");
+        return None;
     }
 }
 

@@ -23,8 +23,8 @@ enum Mode {
 
 trait Creep {
     fn get_creep(&self) -> &screeps::Creep;
-    fn update_mode(&self);
-    fn update_target(&self);
+    fn get_new_mode(&self) -> Option<Mode>;
+    fn get_new_target(&self) -> Option<RawObjectId>;
 
     fn game_loop(&self) {
         debug!("running {}", self.get_creep().name());
@@ -32,16 +32,19 @@ trait Creep {
             return;
         }
 
-        self.update_mode_and_target();
+        self.update_mode();
         self.execute_mode();
-        self.update_mode_and_target();
+        self.update_mode();
         self.move_to_target();
     }
 
-    fn update_mode_and_target(&self) {
-        self.update_mode();
-        if !self.has_target() {
-            self.update_target();
+    fn update_mode(&self) {
+        if let Some(mode) = self.get_new_mode() {
+            self.set_mode(mode);
+
+            if !self.has_target() {
+                self.set_target(self.get_new_target());
+            }
         }
     }
 
@@ -235,7 +238,7 @@ trait Creep {
     {
         let mut stored_target = self.get_stored_object(TARGET);
         if stored_target.is_none() {
-            self.update_target();
+            self.set_target(self.get_new_target());
             stored_target = self.get_stored_object(TARGET);
         }
 
