@@ -40,10 +40,10 @@ impl Harvester {
         let mut body = vec![Part::Move, Part::Carry];
         let base_body_cost = body.iter().map(|p| p.cost()).sum::<u32>();
         assert!(capacity >= base_body_cost);
-        let remaining_cost = capacity - base_body_cost;
-        let extra_work_parts = remaining_cost / Part::Work.cost();
+        let remaining_capacity = capacity - base_body_cost;
+        let extra_work_parts = remaining_capacity / Part::Work.cost();
         let extra_carry_parts =
-            (remaining_cost - (extra_work_parts * Part::Work.cost())) / Part::Carry.cost();
+            (remaining_capacity - (extra_work_parts * Part::Work.cost())) / Part::Carry.cost();
 
         for _ in 0..extra_work_parts {
             body.push(Part::Work);
