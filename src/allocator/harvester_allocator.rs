@@ -1,5 +1,5 @@
 use log::*;
-use screeps::{find, prelude::*, RawObjectId, Source};
+use screeps::{find, prelude::*, Part, RawObjectId, Source};
 use std::collections::HashMap;
 use std::convert::TryInto;
 
@@ -7,6 +7,26 @@ use crate::creeps::harvester::Harvester;
 use crate::creeps::Creep;
 
 pub const NAME_PREFIX: &'static str = "harvester";
+
+pub fn get_description(capacity: u32) -> (Vec<Part>, &'static str) {
+    let mut body = vec![Part::Move, Part::Carry];
+    let base_body_cost = body.iter().map(|p| p.cost()).sum::<u32>();
+    assert!(capacity >= base_body_cost);
+    let remaining_capacity = capacity - base_body_cost;
+    let extra_work_parts = remaining_capacity / Part::Work.cost();
+    let extra_carry_parts =
+        (remaining_capacity - (extra_work_parts * Part::Work.cost())) / Part::Carry.cost();
+
+    for _ in 0..extra_work_parts {
+        body.push(Part::Work);
+    }
+
+    for _ in 0..extra_carry_parts {
+        body.push(Part::Carry);
+    }
+
+    (body, NAME_PREFIX)
+}
 
 pub fn allocate_creep(creep: screeps::Creep) {
     let harvester = Harvester(creep);

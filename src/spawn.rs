@@ -1,7 +1,5 @@
 use crate::allocator::harvester_allocator;
 use crate::allocator::worker_allocator;
-use crate::creeps::harvester::Harvester;
-use crate::creeps::worker::Worker;
 use log::*;
 use screeps::{prelude::*, Part, ResourceType, ReturnCode};
 
@@ -42,7 +40,7 @@ impl Spawn {
         if harvester_allocator::get_target_source().is_some() {
             let store_capacity = self.0.store_capacity(Some(ResourceType::Energy));
             if store_capacity > 0 {
-                return Some(Harvester::get_description(store_capacity));
+                return Some(harvester_allocator::get_description(store_capacity));
             } else {
                 error!("Store has no capacity!");
             }
@@ -55,7 +53,7 @@ impl Spawn {
     fn get_worker_spawn_target(&self) -> Option<(Vec<Part>, &'static str)> {
         let store_capacity = self.0.store_capacity(Some(ResourceType::Energy));
         if worker_allocator::can_allocate_more() {
-            return Some(Worker::get_description(store_capacity));
+            return Some(worker_allocator::get_description(store_capacity));
         }
         return None;
     }

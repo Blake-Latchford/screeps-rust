@@ -1,7 +1,7 @@
 use super::Creep;
 use super::Mode;
 use log::*;
-use screeps::{prelude::*, Part, RawObjectId};
+use screeps::{prelude::*, RawObjectId};
 pub const NAME_PREFIX: &'static str = "worker";
 
 pub struct Worker(pub screeps::Creep);
@@ -42,25 +42,6 @@ impl Creep for Worker {
 }
 
 impl Worker {
-    pub fn get_description(capacity: u32) -> (Vec<Part>, &'static str) {
-        let part_set = [Part::Move, Part::Carry, Part::Work];
-        let part_set_cost: u32 = part_set.iter().map(|part| part.cost()).sum();
-        let number_of_part_sets = capacity / part_set_cost;
-        let mut result: Vec<Part> = Vec::new();
-        for part in &part_set {
-            for _ in 0..number_of_part_sets {
-                result.push(*part);
-            }
-        }
-        let mut left_over_energy = capacity - part_set_cost;
-        for part in &part_set {
-            if part.cost() <= left_over_energy {
-                left_over_energy -= part.cost();
-                result.push(*part);
-            }
-        }
-        (result, NAME_PREFIX)
-    }
     fn should_start_upgrade(&self) -> bool {
         if !self.is_mode(Mode::Idle) && self.has_capacity() {
             return false;

@@ -1,10 +1,32 @@
 use log::*;
-use screeps::{find, prelude::*, ConstructionSite, Position, RawObjectId, StructureController};
+use screeps::{
+    find, prelude::*, ConstructionSite, Part, Position, RawObjectId, StructureController,
+};
 
 use crate::creeps::worker::Worker;
 use crate::creeps::Creep;
 
 pub const NAME_PREFIX: &'static str = "worker";
+
+pub fn get_description(capacity: u32) -> (Vec<Part>, &'static str) {
+    let part_set = [Part::Move, Part::Carry, Part::Work];
+    let part_set_cost: u32 = part_set.iter().map(|part| part.cost()).sum();
+    let number_of_part_sets = capacity / part_set_cost;
+    let mut result: Vec<Part> = Vec::new();
+    for part in &part_set {
+        for _ in 0..number_of_part_sets {
+            result.push(*part);
+        }
+    }
+    let mut left_over_energy = capacity - part_set_cost;
+    for part in &part_set {
+        if part.cost() <= left_over_energy {
+            left_over_energy -= part.cost();
+            result.push(*part);
+        }
+    }
+    (result, NAME_PREFIX)
+}
 
 pub fn allocate_creep(creep: screeps::Creep) {
     let worker = Worker(creep);

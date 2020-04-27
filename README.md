@@ -1,6 +1,5 @@
 #TODO
 1. Make creep sub-class composition rather than inheritance.
-    1. Move get_description into creep allocators.
     1. Convert harvester to use "input"/"output" rather than "harvest"/spawn
     1. Move target selection into Creep.
     1. Replace Creep inheritance with composition.
@@ -10,6 +9,7 @@
 1. Move spawn target prioritiziation into allocator.
     1. Make allocator derriviatves private to allocator.
     1. Move NAME_PREFIX from derivative allocators into main allocator.
+        1. Remove NAME_PREFIX from creep sub classes.
 1. Handle creep colision deadlock.
     1. Rewrite Creep::move_to_target to reduce nesting.
     1. Don't haul energy to spawn if spawn is full
