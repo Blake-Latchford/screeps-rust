@@ -38,7 +38,10 @@ pub fn allocate_creep(creep: screeps::Creep) {
                 target_source.id(),
                 harvester.get_creep().name()
             );
-            harvester.set_harvest_target_source(target_source);
+            harvester
+                .get_creep()
+                .memory()
+                .set("input", target_source.id().to_string());
         }
     }
 }

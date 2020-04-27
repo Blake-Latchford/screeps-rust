@@ -35,18 +35,16 @@ impl super::Creep for Harvester {
 
 impl Harvester {
     fn get_harvest_target(&self) -> Option<RawObjectId> {
-        return self.get_stored_id("harvest");
+        Some(
+            self.get_stored_object::<screeps::Source>("input")?
+                .untyped_id(),
+        )
     }
-
-    pub fn set_harvest_target_source(&self, source: screeps::Source) {
-        debug!("setting new source: {:?}", source.id());
-        self.get_creep()
-            .memory()
-            .set("harvest", source.id().to_string());
-    }
-
     fn get_transfer_target(&self) -> Option<RawObjectId> {
-        Some(screeps::game::spawns::values().pop()?.untyped_id())
+        Some(
+            self.get_stored_object::<screeps::Source>("output")?
+                .untyped_id(),
+        )
     }
 
     pub fn consumtpion_rate(&self) -> u32 {
