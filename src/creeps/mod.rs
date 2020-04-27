@@ -1,15 +1,13 @@
 use log::*;
 use screeps::objects::HasPosition;
 use screeps::{
-    prelude::*, ConstructionSite, RawObjectId, ResourceType, ReturnCode, Source, Structure,
-    StructureController,
+    prelude::*, ConstructionSite, Position, RawObjectId, ResourceType, ReturnCode, Source,
+    Structure, StructureController,
 };
 use std::collections::HashSet;
 
 pub mod harvester;
 pub mod worker;
-
-const TARGET: &'static str = "target";
 
 #[derive(PartialEq, Debug)]
 pub enum Mode {
@@ -19,6 +17,13 @@ pub enum Mode {
     UpgradeController,
     Build,
     Idle,
+}
+
+impl Mode {
+    fn is_input_mode(&self) -> bool {
+        const INPUT_MODES: [Mode; 3] = [Mode::Harvest, Mode::TransferFrom, Mode::Idle];
+        INPUT_MODES.contains(self)
+    }
 }
 
 pub trait Creep {
@@ -41,10 +46,6 @@ pub trait Creep {
     fn update_mode(&self) {
         if let Some(mode) = self.get_new_mode() {
             self.set_mode(mode);
-
-            if !self.has_target() {
-                self.set_target(self.get_new_target());
-            }
         }
     }
 
@@ -78,7 +79,7 @@ pub trait Creep {
                 } else if return_code != ReturnCode::Ok {
                     error!(
                         "Failed transfer_to '{:?}': {:?}",
-                        self.get_stored_id(TARGET),
+                        target_structure.id(),
                         return_code
                     );
                 }
@@ -140,20 +141,16 @@ pub trait Creep {
     }
 
     fn move_to_target(&self) {
-        if let Some(target_id) = self.get_stored_id(TARGET) {
-            if let Some(target) = screeps::game::get_object_erased(target_id) {
-                if target.pos() != self.get_creep().pos() {
-                    let return_code = self.get_creep().move_to(&target);
-                    if return_code == ReturnCode::Tired {
-                        debug!("Waiting for fatigue");
-                    } else if return_code != ReturnCode::Ok {
-                        debug!("Failed move: {:?}", return_code);
-                    }
-                } else {
-                    self.move_random_direction();
+        if let Some(target_position) = self.get_target_position() {
+            if target_position != self.get_creep().pos() {
+                let return_code = self.get_creep().move_to(&target_position);
+                if return_code == ReturnCode::Tired {
+                    debug!("Waiting for fatigue");
+                } else if return_code != ReturnCode::Ok {
+                    debug!("Failed move: {:?}", return_code);
                 }
             } else {
-                warn!("Invalid move target id: {}", target_id);
+                self.move_random_direction();
             }
         } else {
             debug!("No move target");
@@ -221,7 +218,6 @@ pub trait Creep {
             Mode::Idle => "i",
         };
         self.get_creep().memory().set("mode", mode_string);
-        self.set_target(None);
         let return_code = self.get_creep().say(mode_string, false);
         if return_code != ReturnCode::Ok {
             debug!("say: {:?}", return_code);
@@ -229,20 +225,35 @@ pub trait Creep {
     }
 
     fn has_target(&self) -> bool {
-        self.get_stored_id(TARGET).is_some()
+        if let Some(key) = self.get_target_key() {
+            if let Some(stored_id) = self.get_stored_id(key) {
+                return screeps::game::get_object_erased(stored_id).is_some();
+            }
+        }
+        return false;
+    }
+
+    fn get_target_position(&self) -> Option<Position> {
+        let target_id = self.get_stored_id(self.get_target_key()?)?;
+        Some(screeps::game::get_object_erased(target_id)?.pos())
     }
 
     fn get_target<T>(&self) -> Option<T>
     where
         T: screeps::SizedRoomObject + screeps::HasId,
     {
-        let mut stored_target = self.get_stored_object(TARGET);
-        if stored_target.is_none() {
-            self.set_target(self.get_new_target());
-            stored_target = self.get_stored_object(TARGET);
-        }
+        return self.get_stored_object(self.get_target_key()?);
+    }
 
-        return stored_target;
+    fn get_target_key(&self) -> Option<&'static str> {
+        let key;
+
+        if self.get_mode()?.is_input_mode() {
+            key = "input";
+        } else {
+            key = "output";
+        }
+        return Some(key);
     }
 
     fn get_stored_object<T>(&self, key: &str) -> Option<T>
@@ -258,20 +269,6 @@ pub trait Creep {
         let id = stored_target_id_string.parse().unwrap();
         return Some(id);
     }
-
-    fn set_target(&self, target_option: Option<RawObjectId>) {
-        debug!(
-            "Set target for {:?} to {:?}",
-            self.get_creep().name(),
-            target_option
-        );
-        if let Some(target) = target_option {
-            self.get_creep().memory().set(TARGET, target.to_string());
-        } else {
-            self.get_creep().memory().del(TARGET);
-        }
-    }
-
     fn is_mode(&self, mode: Mode) -> bool {
         self.get_mode() == Some(mode)
     }
