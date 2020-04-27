@@ -37,7 +37,7 @@ pub fn get_target_source() -> Option<Source> {
 fn get_source_with_most_capacity(harvesters: &Vec<Harvester>) -> Option<Source> {
     let source_id = source_creep_map(harvesters)
         .drain()
-        .filter(|(k, v)| v.len() < source_capacity(k))
+        .filter(|(k, v)| v.len() < max_creeps(k))
         .max_by_key(|(k, v)| wasted_input_rate(&k, &v))?
         .0;
     debug!("{}:{}", file!(), line!());
@@ -72,7 +72,9 @@ fn get_my_sources() -> Vec<Source> {
     return sources;
 }
 
-fn source_capacty(source: &Source) {}
+fn max_creeps(_source_id: &RawObjectId) -> usize {
+    return 2;
+}
 
 fn wasted_input_rate(source_id: &RawObjectId, harvesters: &Vec<&Harvester>) -> i32 {
     let source = screeps::game::get_object_typed::<Source>((*source_id).into())
