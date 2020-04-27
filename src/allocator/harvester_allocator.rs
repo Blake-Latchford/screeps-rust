@@ -1,29 +1,15 @@
-use crate::creeps::harvester::Harvester;
-use crate::creeps::Creep;
 use log::*;
 use screeps::{find, prelude::*, RawObjectId, Source};
 use std::collections::HashMap;
 use std::convert::TryInto;
 
-const NAME_PREFIX: &'static str = "harvester";
+use crate::creeps::harvester::Harvester;
+use crate::creeps::Creep;
 
-pub fn allocate_creeps() {
-    for creep in get_my_creeps() {
-        allocate_creep(creep);
-    }
-}
+pub const NAME_PREFIX: &'static str = "harvester";
 
-fn get_my_creeps() -> Vec<Harvester> {
-    let mut result = vec![];
-    for creep in screeps::game::creeps::values() {
-        if creep.name().starts_with(NAME_PREFIX) {
-            result.push(Harvester(creep));
-        }
-    }
-    return result;
-}
-
-fn allocate_creep(harvester: Harvester) {
+pub fn allocate_creep(creep: screeps::Creep) {
+    let harvester = Harvester(creep);
     if harvester.get_stored_id("harvest").is_none() {
         debug!("{} has no target", harvester.get_creep().name());
         if let Some(target_source) = get_target_source() {
@@ -51,6 +37,7 @@ pub fn get_target_source() -> Option<Source> {
 fn get_source_with_most_capacity(harvesters: &Vec<Harvester>) -> Option<Source> {
     let source_id = source_creep_map(harvesters)
         .drain()
+        .filter(|(k, v)| v.len() < source_capacity(k))
         .max_by_key(|(k, v)| wasted_input_rate(&k, &v))?
         .0;
     debug!("{}:{}", file!(), line!());
@@ -84,6 +71,8 @@ fn get_my_sources() -> Vec<Source> {
     }
     return sources;
 }
+
+fn source_capacty(source: &Source) {}
 
 fn wasted_input_rate(source_id: &RawObjectId, harvesters: &Vec<&Harvester>) -> i32 {
     let source = screeps::game::get_object_typed::<Source>((*source_id).into())

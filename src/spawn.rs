@@ -1,4 +1,5 @@
 use crate::allocator::harvester_allocator;
+use crate::allocator::worker_allocator;
 use crate::creeps::harvester::Harvester;
 use crate::creeps::worker::Worker;
 use log::*;
@@ -28,6 +29,11 @@ impl Spawn {
             return harvester_spawn_target;
         }
 
+        let worke_spawn_target = self.get_worker_spawn_target();
+        if worke_spawn_target.is_some() {
+            return worke_spawn_target;
+        }
+
         return None;
     }
 
@@ -46,18 +52,17 @@ impl Spawn {
         return None;
     }
 
-    fn get_worker_spawn_target(&self, workers: &Vec<Worker>) -> Option<(Vec<Part>, &'static str)> {
-        if workers.len() > 0 {
-            return None;
+    fn get_worker_spawn_target(&self) -> Option<(Vec<Part>, &'static str)> {
+        let store_capacity = self.0.store_capacity(Some(ResourceType::Energy));
+        if worker_allocator::can_allocate_more() {
+            return Some(Worker::get_description(store_capacity));
         }
-        return Some(Worker::get_description(
-            self.0.store_capacity(Some(ResourceType::Energy)),
-        ));
+        return None;
     }
 
     fn spawn_creep(&mut self, body: &Vec<screeps::Part>, name_prefix: &str) {
         for i in 0..1000 {
-            let name = name_prefix.to_owned() + &i.to_string();
+            let name = name_prefix.to_owned() + ":" + &i.to_string();
             let return_code = self.0.spawn_creep(&body, &name);
             match return_code {
                 ReturnCode::NameExists => continue,
