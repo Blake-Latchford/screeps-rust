@@ -17,7 +17,7 @@ pub fn can_allocate_more() -> bool {
         .iter()
         .filter(|x| x.name().starts_with(NAME_PREFIX))
         .count();
-    return worker_count > 2;
+    return worker_count < 2;
 }
 
 fn allocate_input(worker: &Worker) {
