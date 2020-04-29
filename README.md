@@ -1,6 +1,5 @@
 #TODO
 1. Make creep sub-class composition rather than inheritance.
-    1. Move target selection into Creep.
     1. Replace Creep inheritance with composition.
     1. Split creeps::Creep into actor and state flow.
     1. Move CreepManager work into Creep.
