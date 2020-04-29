@@ -1,5 +1,5 @@
 use super::{Creep, Mode};
-use screeps::{prelude::*, Part, RawObjectId};
+use screeps::{prelude::*, Part};
 
 pub const NAME_PREFIX: &'static str = "harvester";
 pub struct Harvester(pub screeps::Creep);
@@ -18,30 +18,9 @@ impl super::Creep for Harvester {
 
         return None;
     }
-
-    fn get_new_target(&self) -> Option<RawObjectId> {
-        return match self.get_mode() {
-            Mode::TransferTo => self.get_transfer_target(),
-            Mode::Harvest => self.get_harvest_target(),
-            _ => None,
-        };
-    }
 }
 
 impl Harvester {
-    fn get_harvest_target(&self) -> Option<RawObjectId> {
-        Some(
-            self.get_stored_object::<screeps::Source>("input")?
-                .untyped_id(),
-        )
-    }
-    fn get_transfer_target(&self) -> Option<RawObjectId> {
-        Some(
-            self.get_stored_object::<screeps::Source>("output")?
-                .untyped_id(),
-        )
-    }
-
     pub fn consumtpion_rate(&self) -> u32 {
         return screeps::constants::HARVEST_POWER
             * self.get_creep().get_active_bodyparts(Part::Work);

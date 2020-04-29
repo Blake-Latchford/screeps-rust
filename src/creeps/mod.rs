@@ -29,7 +29,6 @@ impl Mode {
 pub trait Creep {
     fn get_creep(&self) -> &screeps::Creep;
     fn get_new_mode(&self) -> Option<Mode>;
-    fn get_new_target(&self) -> Option<RawObjectId>;
 
     fn game_loop(&self) {
         debug!("running {}", self.get_creep().name());
@@ -209,10 +208,8 @@ pub trait Creep {
             Mode::Idle => "i",
         };
         self.get_creep().memory().set("mode", mode_string);
-        let return_code = self.get_creep().say(mode_string, false);
-        if return_code != ReturnCode::Ok {
-            debug!("say: {:?}", return_code);
-        }
+        self.get_creep().say(mode_string, false);
+        debug!("{}: {}", self.get_creep().name(), mode_string);
     }
 
     fn has_target(&self) -> bool {

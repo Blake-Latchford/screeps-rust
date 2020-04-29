@@ -1,6 +1,6 @@
 use super::Creep;
 use super::Mode;
-use screeps::{prelude::*, RawObjectId};
+use screeps::{prelude::*, ConstructionSite};
 pub const NAME_PREFIX: &'static str = "worker";
 
 pub struct Worker(pub screeps::Creep);
@@ -22,16 +22,6 @@ impl Creep for Worker {
         }
 
         return None;
-    }
-
-    fn get_new_target(&self) -> Option<RawObjectId> {
-        return match self.get_mode() {
-            Mode::UpgradeController => self.get_upgrade_controller_target(),
-            Mode::TransferFrom => self.get_transfer_from_target(),
-            Mode::Build => self.get_build_target(),
-            Mode::Idle => self.get_idle_target(),
-            _ => None,
-        };
     }
 }
 
@@ -67,7 +57,11 @@ impl Worker {
     }
 
     fn should_start_build(&self) -> bool {
-        if self.is_full() && self.get_build_target().is_some() {
+        if self.is_full()
+            && self
+                .get_stored_object::<ConstructionSite>("output")
+                .is_some()
+        {
             return true;
         }
 
@@ -82,33 +76,5 @@ impl Worker {
         }
 
         return false;
-    }
-
-    fn get_upgrade_controller_target(&self) -> Option<RawObjectId> {
-        Some(
-            self.get_stored_object::<screeps::StructureController>("output")?
-                .untyped_id(),
-        )
-    }
-
-    fn get_transfer_from_target(&self) -> Option<RawObjectId> {
-        Some(
-            self.get_stored_object::<screeps::StructureSpawn>("input")?
-                .untyped_id(),
-        )
-    }
-
-    fn get_build_target(&self) -> Option<RawObjectId> {
-        Some(
-            self.get_stored_object::<screeps::ConstructionSite>("output")?
-                .untyped_id(),
-        )
-    }
-
-    fn get_idle_target(&self) -> Option<RawObjectId> {
-        Some(
-            self.get_stored_object::<screeps::StructureSpawn>("input")?
-                .untyped_id(),
-        )
     }
 }
