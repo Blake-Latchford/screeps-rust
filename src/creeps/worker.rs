@@ -1,37 +1,35 @@
-use super::Creep;
-use super::Mode;
-use screeps::{prelude::*, ConstructionSite};
+use super::{Creep, Mode, Role};
+use screeps::{prelude::*, ConstructionSite, Part};
 pub const NAME_PREFIX: &'static str = "worker";
 
-pub struct Worker(pub screeps::Creep);
+pub struct Worker;
 
-impl Creep for Worker {
-    fn get_creep(&self) -> &screeps::Creep {
-        return &self.0;
-    }
-
-    fn get_new_mode(&self) -> Option<Mode> {
-        if self.should_start_upgrade() {
+impl Role for Worker {
+    fn get_new_mode(&self, creep: &Creep) -> Option<Mode> {
+        if self.should_start_upgrade(creep) {
             return Some(Mode::UpgradeController);
-        } else if self.should_start_build() {
+        } else if self.should_start_build(creep) {
             return Some(Mode::Build);
-        } else if self.should_start_transfer_from() {
+        } else if self.should_start_transfer_from(creep) {
             return Some(Mode::TransferFrom);
-        } else if self.should_start_idle() {
+        } else if self.should_start_idle(creep) {
             return Some(Mode::Idle);
         }
 
         return None;
     }
-}
 
+    fn consumtpion_rate(&self, creep: &Creep) -> u32 {
+        return screeps::constants::BUILD_POWER * creep.creep.get_active_bodyparts(Part::Work);
+    }
+}
 impl Worker {
-    fn should_start_upgrade(&self) -> bool {
-        if self.get_mode() != Mode::Idle && self.has_capacity() {
+    fn should_start_upgrade(&self, creep: &Creep) -> bool {
+        if creep.get_mode() != Mode::Idle && creep.has_capacity() {
             return false;
         }
 
-        if let Some(controller) = self.get_creep().room().controller() {
+        if let Some(controller) = creep.creep.room().controller() {
             if controller.level() <= 1 {
                 return true;
             }
@@ -42,8 +40,8 @@ impl Worker {
         return false;
     }
 
-    fn should_start_transfer_from(&self) -> bool {
-        if self.get_mode() != Mode::Idle && !self.is_empty() {
+    fn should_start_transfer_from(&self, creep: &Creep) -> bool {
+        if creep.get_mode() != Mode::Idle && !creep.is_empty() {
             return false;
         }
 
@@ -56,9 +54,9 @@ impl Worker {
         return false;
     }
 
-    fn should_start_build(&self) -> bool {
-        if self.is_full()
-            && self
+    fn should_start_build(&self, creep: &Creep) -> bool {
+        if creep.is_full()
+            && creep
                 .get_stored_object::<ConstructionSite>("output")
                 .is_some()
         {
@@ -68,7 +66,7 @@ impl Worker {
         return false;
     }
 
-    fn should_start_idle(&self) -> bool {
+    fn should_start_idle(&self, _: &Creep) -> bool {
         if let Some(spawn) = screeps::game::spawns::values().pop() {
             if spawn.store_free_capacity(None) != 0 {
                 return true;

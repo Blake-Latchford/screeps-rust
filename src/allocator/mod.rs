@@ -1,5 +1,7 @@
 use log::*;
 
+use super::creeps::Creep;
+
 pub mod harvester_allocator;
 pub mod worker_allocator;
 
@@ -12,9 +14,10 @@ pub fn allocate_creeps() {
 fn allocate_creep(creep: screeps::Creep) {
     let name = creep.name();
     let name_prefix = name.split(":").next().unwrap();
+    let local_creep = Creep::new(creep);
     match name_prefix {
-        harvester_allocator::NAME_PREFIX => harvester_allocator::allocate_creep(creep),
-        worker_allocator::NAME_PREFIX => worker_allocator::allocate_creep(creep),
+        harvester_allocator::NAME_PREFIX => harvester_allocator::allocate_creep(local_creep),
+        worker_allocator::NAME_PREFIX => worker_allocator::allocate_creep(local_creep),
         _ => error!("Invalid name prefix: {}", name_prefix),
     }
 }

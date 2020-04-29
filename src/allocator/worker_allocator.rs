@@ -3,7 +3,6 @@ use screeps::{
     find, prelude::*, ConstructionSite, Part, Position, RawObjectId, StructureController,
 };
 
-use crate::creeps::worker::Worker;
 use crate::creeps::Creep;
 
 pub const NAME_PREFIX: &'static str = "worker";
@@ -28,10 +27,9 @@ pub fn get_description(capacity: u32) -> (Vec<Part>, &'static str) {
     (result, NAME_PREFIX)
 }
 
-pub fn allocate_creep(creep: screeps::Creep) {
-    let worker = Worker(creep);
-    allocate_input(&worker);
-    allocate_output(&worker);
+pub fn allocate_creep(creep: Creep) {
+    allocate_input(&creep);
+    allocate_output(&creep);
 }
 
 pub fn can_allocate_more() -> bool {
@@ -42,21 +40,15 @@ pub fn can_allocate_more() -> bool {
     return worker_count < 2;
 }
 
-fn allocate_input(worker: &Worker) {
+fn allocate_input(creep: &Creep) {
     if let Some(spawn) = screeps::game::spawns::values().pop() {
-        worker
-            .get_creep()
-            .memory()
-            .set("input", spawn.id().to_string());
+        creep.creep.memory().set("input", spawn.id().to_string());
     }
 }
 
-fn allocate_output(worker: &Worker) {
+fn allocate_output(creep: &Creep) {
     if let Some(output_id) = allocate_output_id() {
-        worker
-            .get_creep()
-            .memory()
-            .set("output", output_id.to_string());
+        creep.creep.memory().set("output", output_id.to_string());
     }
 }
 

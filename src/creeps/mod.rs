@@ -6,8 +6,8 @@ use screeps::{
 };
 use std::collections::HashSet;
 
-pub mod harvester;
-pub mod worker;
+mod harvester;
+mod worker;
 
 #[derive(PartialEq, Debug)]
 pub enum Mode {
@@ -26,13 +26,38 @@ impl Mode {
     }
 }
 
-pub trait Creep {
-    fn get_creep(&self) -> &screeps::Creep;
-    fn get_new_mode(&self) -> Option<Mode>;
+trait Role {
+    fn get_new_mode(&self, creep: &Creep) -> Option<Mode>;
+    fn consumtpion_rate(&self, creep: &Creep) -> u32;
+}
+
+pub struct Creep {
+    pub creep: screeps::Creep,
+    role: Box<dyn Role>,
+}
+
+impl Creep {
+    pub fn new(creep: screeps::Creep) -> Creep {
+        let name = creep.name();
+        let name_prefix = name.split(":").next().unwrap();
+
+        Creep {
+            creep: creep,
+            role: match name_prefix {
+                harvester::NAME_PREFIX => Box::new(harvester::Harvester),
+                worker::NAME_PREFIX => Box::new(worker::Worker),
+                _ => panic!("Invalid creep name."),
+            },
+        }
+    }
+
+    pub fn consumption_rate(&self) -> u32 {
+        self.role.consumtpion_rate(&self)
+    }
 
     fn game_loop(&self) {
-        debug!("running {}", self.get_creep().name());
-        if self.get_creep().spawning() {
+        debug!("running {}", self.creep.name());
+        if self.creep.spawning() {
             return;
         }
 
@@ -43,7 +68,7 @@ pub trait Creep {
     }
 
     fn update_mode(&self) {
-        if let Some(mode) = self.get_new_mode() {
+        if let Some(mode) = self.role.get_new_mode(&self) {
             self.set_mode(mode);
         }
     }
@@ -70,7 +95,7 @@ pub trait Creep {
         if let Some(target_structure) = self.get_target::<Structure>() {
             if let Some(target_transferable) = target_structure.as_transferable() {
                 let return_code = self
-                    .get_creep()
+                    .creep
                     .transfer_all(target_transferable, ResourceType::Energy);
                 if return_code == ReturnCode::NotInRange {
                     debug!("Failed transfer_to: {:?}", return_code);
@@ -91,7 +116,7 @@ pub trait Creep {
 
     fn upgrade_controller(&self) {
         if let Some(target_controller) = self.get_target::<StructureController>() {
-            let return_code = self.get_creep().upgrade_controller(&target_controller);
+            let return_code = self.creep.upgrade_controller(&target_controller);
             if return_code != ReturnCode::Ok {
                 debug!("Failed upgrade_controller: {:?}", return_code);
             }
@@ -106,7 +131,7 @@ pub trait Creep {
         let target_structure = self.get_target::<Structure>().unwrap();
         let target_withdrawable = target_structure.as_withdrawable().unwrap();
         let return_code = self
-            .get_creep()
+            .creep
             .withdraw_all(target_withdrawable, ResourceType::Energy);
         if return_code != ReturnCode::Ok {
             debug!("Failed transfer_from: {:?}", return_code);
@@ -117,7 +142,7 @@ pub trait Creep {
         assert!(self.has_target());
 
         let source = self.get_target::<Source>().unwrap();
-        let return_code = self.get_creep().harvest(&source);
+        let return_code = self.creep.harvest(&source);
         if return_code != ReturnCode::Ok {
             debug!("Failed harvest: {:?}", return_code);
         }
@@ -125,7 +150,7 @@ pub trait Creep {
 
     fn build(&self) {
         if let Some(construction_site) = self.get_target::<ConstructionSite>() {
-            let return_code = self.get_creep().build(&construction_site);
+            let return_code = self.creep.build(&construction_site);
             if return_code != ReturnCode::Ok {
                 debug!("Failed build: {:?}", return_code);
             }
@@ -140,8 +165,8 @@ pub trait Creep {
 
     fn move_to_target(&self) {
         if let Some(target_position) = self.get_target_position() {
-            if target_position != self.get_creep().pos() {
-                let return_code = self.get_creep().move_to(&target_position);
+            if target_position != self.creep.pos() {
+                let return_code = self.creep.move_to(&target_position);
                 if return_code == ReturnCode::Tired {
                     debug!("Waiting for fatigue");
                 } else if return_code != ReturnCode::Ok {
@@ -167,7 +192,7 @@ pub trait Creep {
             screeps::Direction::TopLeft,
         ];
         for direction in directions.iter() {
-            let return_code = self.get_creep().move_direction(*direction);
+            let return_code = self.creep.move_direction(*direction);
             if return_code == ReturnCode::Ok {
                 break;
             } else {
@@ -188,7 +213,7 @@ pub trait Creep {
     }
 
     fn get_mode_string(&self) -> String {
-        if let Ok(Some(result)) = self.get_creep().memory().string("mode") {
+        if let Ok(Some(result)) = self.creep.memory().string("mode") {
             return result;
         }
         return "".to_string();
@@ -207,9 +232,9 @@ pub trait Creep {
             Mode::Build => "b",
             Mode::Idle => "i",
         };
-        self.get_creep().memory().set("mode", mode_string);
-        self.get_creep().say(mode_string, false);
-        debug!("{}: {}", self.get_creep().name(), mode_string);
+        self.creep.memory().set("mode", mode_string);
+        self.creep.say(mode_string, false);
+        debug!("{}: {}", self.creep.name(), mode_string);
     }
 
     fn has_target(&self) -> bool {
@@ -238,6 +263,13 @@ pub trait Creep {
         };
     }
 
+    pub fn get_input<T>(&self) -> Option<T>
+    where
+        T: screeps::SizedRoomObject + screeps::HasId,
+    {
+        return self.get_stored_object("input");
+    }
+
     fn get_stored_object<T>(&self, key: &str) -> Option<T>
     where
         T: screeps::SizedRoomObject + screeps::HasId,
@@ -246,28 +278,28 @@ pub trait Creep {
         screeps::game::get_object_typed::<T>(stored_id.into()).ok()?
     }
 
-    fn get_stored_id(&self, key: &str) -> Option<RawObjectId> {
-        let stored_target_id_string = self.get_creep().memory().string(key).ok()??;
+    pub fn get_stored_id(&self, key: &str) -> Option<RawObjectId> {
+        let stored_target_id_string = self.creep.memory().string(key).ok()??;
         let id = stored_target_id_string.parse().unwrap();
         return Some(id);
     }
 
     fn has_capacity(&self) -> bool {
-        self.get_creep().store_free_capacity(None) != 0
+        self.creep.store_free_capacity(None) != 0
     }
 
     fn is_full(&self) -> bool {
-        self.get_creep().store_free_capacity(None) == 0
+        self.creep.store_free_capacity(None) == 0
     }
 
     fn is_empty(&self) -> bool {
-        self.get_creep().store_used_capacity(None) == 0
+        self.creep.store_used_capacity(None) == 0
     }
 }
 
 pub struct CreepManager {
-    pub workers: Vec<worker::Worker>,
-    pub harvesters: Vec<harvester::Harvester>,
+    pub workers: Vec<Creep>,
+    pub harvesters: Vec<Creep>,
 }
 
 impl CreepManager {
@@ -284,9 +316,9 @@ impl CreepManager {
     fn register_all_creeps(&mut self) {
         for creep in screeps::game::creeps::values() {
             if creep.name().starts_with(harvester::NAME_PREFIX) {
-                self.harvesters.push(harvester::Harvester(creep))
+                self.harvesters.push(Creep::new(creep))
             } else if creep.name().starts_with(worker::NAME_PREFIX) {
-                self.workers.push(worker::Worker(creep));
+                self.workers.push(Creep::new(creep));
             }
         }
     }
