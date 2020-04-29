@@ -1,6 +1,5 @@
 use super::Creep;
 use super::Mode;
-use log::*;
 use screeps::{prelude::*, RawObjectId};
 pub const NAME_PREFIX: &'static str = "worker";
 
@@ -26,18 +25,13 @@ impl Creep for Worker {
     }
 
     fn get_new_target(&self) -> Option<RawObjectId> {
-        if let Some(mode) = self.get_mode() {
-            return match mode {
-                Mode::UpgradeController => self.get_upgrade_controller_target(),
-                Mode::TransferFrom => self.get_transfer_from_target(),
-                Mode::Build => self.get_build_target(),
-                Mode::Idle => self.get_idle_target(),
-                _ => None,
-            };
-        }
-
-        warn!("No mode selected.");
-        None
+        return match self.get_mode() {
+            Mode::UpgradeController => self.get_upgrade_controller_target(),
+            Mode::TransferFrom => self.get_transfer_from_target(),
+            Mode::Build => self.get_build_target(),
+            Mode::Idle => self.get_idle_target(),
+            _ => None,
+        };
     }
 }
 

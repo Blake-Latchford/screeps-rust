@@ -1,5 +1,4 @@
 use super::{Creep, Mode};
-use log::*;
 use screeps::{prelude::*, Part, RawObjectId};
 
 pub const NAME_PREFIX: &'static str = "harvester";
@@ -21,15 +20,11 @@ impl super::Creep for Harvester {
     }
 
     fn get_new_target(&self) -> Option<RawObjectId> {
-        if let Some(mode) = self.get_mode() {
-            return match mode {
-                Mode::TransferTo => self.get_transfer_target(),
-                Mode::Harvest => self.get_harvest_target(),
-                _ => None,
-            };
-        }
-        warn!("No mode selected.");
-        return None;
+        return match self.get_mode() {
+            Mode::TransferTo => self.get_transfer_target(),
+            Mode::Harvest => self.get_harvest_target(),
+            _ => None,
+        };
     }
 }
 

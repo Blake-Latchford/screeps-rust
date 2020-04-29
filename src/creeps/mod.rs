@@ -58,13 +58,12 @@ pub trait Creep {
         let mode = self.get_mode();
         debug!("Execute mode {:?}", mode);
         match mode {
-            Some(Mode::TransferTo) => self.transfer_to(),
-            Some(Mode::TransferFrom) => self.transfer_from(),
-            Some(Mode::Harvest) => self.harvest(),
-            Some(Mode::UpgradeController) => self.upgrade_controller(),
-            Some(Mode::Build) => self.build(),
-            Some(Mode::Idle) => self.idle(),
-            None => warn!("No mode selected!"),
+            Mode::TransferTo => self.transfer_to(),
+            Mode::TransferFrom => self.transfer_from(),
+            Mode::Harvest => self.harvest(),
+            Mode::UpgradeController => self.upgrade_controller(),
+            Mode::Build => self.build(),
+            Mode::Idle => self.idle(),
         }
     }
 
@@ -178,34 +177,26 @@ pub trait Creep {
         }
     }
 
-    fn get_mode(&self) -> Option<Mode> {
-        if let Some(mode_string) = self.get_mode_string() {
-            let mode = match mode_string.as_str() {
-                "h" => Some(Mode::Harvest),
-                "tt" => Some(Mode::TransferTo),
-                "tf" => Some(Mode::TransferFrom),
-                "u" => Some(Mode::UpgradeController),
-                "b" => Some(Mode::Build),
-                "i" => Some(Mode::Idle),
-                _ => None,
-            };
-
-            if mode.is_none() {
-                error!("Invalid mode: {:?}", mode_string);
-            }
-            return mode;
-        }
-
-        None
+    fn get_mode(&self) -> Mode {
+        return match self.get_mode_string().as_str() {
+            "h" => Mode::Harvest,
+            "tt" => Mode::TransferTo,
+            "tf" => Mode::TransferFrom,
+            "u" => Mode::UpgradeController,
+            "b" => Mode::Build,
+            _ => Mode::Idle,
+        };
     }
 
-    fn get_mode_string(&self) -> Option<String> {
-        self.get_creep().memory().string("mode").ok()?
+    fn get_mode_string(&self) -> String {
+        if let Ok(Some(result)) = self.get_creep().memory().string("mode") {
+            return result;
+        }
+        return "".to_string();
     }
 
     fn set_mode(&self, mode: Mode) {
-        let current_mode_option = self.get_mode();
-        if current_mode_option.is_some() && mode == current_mode_option.unwrap() {
+        if self.get_mode() == mode {
             return;
         }
 
@@ -225,16 +216,14 @@ pub trait Creep {
     }
 
     fn has_target(&self) -> bool {
-        if let Some(key) = self.get_target_key() {
-            if let Some(stored_id) = self.get_stored_id(key) {
-                return screeps::game::get_object_erased(stored_id).is_some();
-            }
+        if let Some(stored_id) = self.get_stored_id(self.get_target_key()) {
+            return screeps::game::get_object_erased(stored_id).is_some();
         }
         return false;
     }
 
     fn get_target_position(&self) -> Option<Position> {
-        let target_id = self.get_stored_id(self.get_target_key()?)?;
+        let target_id = self.get_stored_id(self.get_target_key())?;
         Some(screeps::game::get_object_erased(target_id)?.pos())
     }
 
@@ -242,18 +231,14 @@ pub trait Creep {
     where
         T: screeps::SizedRoomObject + screeps::HasId,
     {
-        return self.get_stored_object(self.get_target_key()?);
+        return self.get_stored_object(self.get_target_key());
     }
 
-    fn get_target_key(&self) -> Option<&'static str> {
-        let key;
-
-        if self.get_mode()?.is_input_mode() {
-            key = "input";
-        } else {
-            key = "output";
-        }
-        return Some(key);
+    fn get_target_key(&self) -> &'static str {
+        return match self.get_mode().is_input_mode() {
+            true => "input",
+            false => "output",
+        };
     }
 
     fn get_stored_object<T>(&self, key: &str) -> Option<T>
@@ -270,7 +255,7 @@ pub trait Creep {
         return Some(id);
     }
     fn is_mode(&self, mode: Mode) -> bool {
-        self.get_mode() == Some(mode)
+        self.get_mode() == mode
     }
 
     fn has_capacity(&self) -> bool {
