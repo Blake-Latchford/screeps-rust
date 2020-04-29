@@ -37,7 +37,7 @@ impl Creep for Worker {
 
 impl Worker {
     fn should_start_upgrade(&self) -> bool {
-        if !self.is_mode(Mode::Idle) && self.has_capacity() {
+        if self.get_mode() != Mode::Idle && self.has_capacity() {
             return false;
         }
 
@@ -53,7 +53,7 @@ impl Worker {
     }
 
     fn should_start_transfer_from(&self) -> bool {
-        if !self.is_mode(Mode::Idle) && !self.is_empty() {
+        if self.get_mode() != Mode::Idle && !self.is_empty() {
             return false;
         }
 

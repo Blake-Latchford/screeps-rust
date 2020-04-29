@@ -254,9 +254,6 @@ pub trait Creep {
         let id = stored_target_id_string.parse().unwrap();
         return Some(id);
     }
-    fn is_mode(&self, mode: Mode) -> bool {
-        self.get_mode() == mode
-    }
 
     fn has_capacity(&self) -> bool {
         self.get_creep().store_free_capacity(None) != 0
