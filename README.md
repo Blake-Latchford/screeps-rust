@@ -1,8 +1,6 @@
 #TODO
 1. Make creep sub-class composition rather than inheritance.
-    1. Move all name prefixes into creeps::Creep.
     1. Split creeps::Creep into actor and state flow.
-    1. Move CreepManager work into Creep.
     1. Rename creeps module to creep.
 1. Move spawn target prioritiziation into allocator.
     1. Make allocator derriviatves private to allocator.

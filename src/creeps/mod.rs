@@ -321,67 +321,35 @@ impl Creep {
     }
 }
 
-pub struct CreepManager {
-    pub workers: Vec<Creep>,
-    pub harvesters: Vec<Creep>,
+pub fn game_loop() {
+    for screeps_creep in screeps::game::creeps::values() {
+        let creep = Creep::new(screeps_creep);
+        creep.game_loop();
+    }
+    cleanup_memory().expect("expected Memory.creeps format to be a regular memory object");
 }
 
-impl CreepManager {
-    pub fn new() -> CreepManager {
-        debug!("register creeps");
-        let mut creep_manager = CreepManager {
-            workers: vec![],
-            harvesters: vec![],
-        };
-        creep_manager.register_all_creeps();
-        return creep_manager;
+fn cleanup_memory() -> Result<(), Box<dyn std::error::Error>> {
+    let time = screeps::game::time();
+    if time % 32 != 3 {
+        return Ok(());
     }
 
-    fn register_all_creeps(&mut self) {
-        for screeps_creep in screeps::game::creeps::values() {
-            let creep = Creep::new(screeps_creep);
-            match creep.role {
-                Role::Harvester => &mut self.harvesters,
-                Role::Worker => &mut self.workers,
-            }
-            .push(creep);
-        }
-    }
+    info!("running memory cleanup");
 
-    pub fn game_loop(&self) {
-        debug!("running creeps");
-
-        for harvester in &self.harvesters {
-            harvester.game_loop();
-        }
-        for worker in &self.workers {
-            worker.game_loop();
-        }
-        CreepManager::cleanup_memory()
-            .expect("expected Memory.creeps format to be a regular memory object");
-    }
-    fn cleanup_memory() -> Result<(), Box<dyn std::error::Error>> {
-        let time = screeps::game::time();
-        if time % 32 != 3 {
+    let alive_creeps: HashSet<String> = screeps::game::creeps::keys().into_iter().collect();
+    let screeps_memory = match screeps::memory::root().dict("creeps")? {
+        Some(v) => v,
+        None => {
+            warn!("not cleaning game creep memory: no Memory.creeps dict");
             return Ok(());
         }
-
-        info!("running memory cleanup");
-
-        let alive_creeps: HashSet<String> = screeps::game::creeps::keys().into_iter().collect();
-        let screeps_memory = match screeps::memory::root().dict("creeps")? {
-            Some(v) => v,
-            None => {
-                warn!("not cleaning game creep memory: no Memory.creeps dict");
-                return Ok(());
-            }
-        };
-        for mem_name in screeps_memory.keys() {
-            if !alive_creeps.contains(&mem_name) {
-                debug!("cleaning up creep memory of dead creep {}", mem_name);
-                screeps_memory.del(&mem_name);
-            }
+    };
+    for mem_name in screeps_memory.keys() {
+        if !alive_creeps.contains(&mem_name) {
+            debug!("cleaning up creep memory of dead creep {}", mem_name);
+            screeps_memory.del(&mem_name);
         }
-        Ok(())
     }
+    Ok(())
 }
