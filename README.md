@@ -2,6 +2,7 @@
 1. Make creep sub-class composition rather than inheritance.
     1. Split creeps::Creep into actor and state flow.
     1. Rename creeps module to creep.
+    1. Make Creep::creep private.
 1. Move spawn target prioritiziation into allocator.
     1. Make allocator derriviatves private to allocator.
     1. Move NAME_PREFIX from derivative allocators into main allocator.
