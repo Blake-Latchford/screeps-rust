@@ -1,6 +1,5 @@
 use super::{Creep, Mode, ModeFlow};
 use screeps::{prelude::*, ConstructionSite, Part};
-pub const NAME_PREFIX: &'static str = "worker";
 
 pub struct Worker;
 

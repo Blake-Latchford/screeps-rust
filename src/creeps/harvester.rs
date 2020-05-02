@@ -1,7 +1,6 @@
 use super::{Creep, Mode, ModeFlow};
 use screeps::{prelude::*, Part};
 
-pub const NAME_PREFIX: &'static str = "harvester";
 pub struct Harvester;
 
 impl ModeFlow for Harvester {

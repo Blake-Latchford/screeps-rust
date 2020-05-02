@@ -5,6 +5,7 @@ use screeps::{
     Structure, StructureController,
 };
 use std::collections::HashSet;
+use std::str::FromStr;
 
 mod harvester;
 mod worker;
@@ -31,28 +32,51 @@ trait ModeFlow {
     fn consumtpion_rate(&self, creep: &Creep) -> u32;
 }
 
+#[derive(PartialEq, Debug, Clone)]
+pub enum Role {
+    Harvester,
+    Worker,
+}
+
+const ROLE_STRINGS: [(Role, &'static str); 2] =
+    [(Role::Harvester, "harvester"), (Role::Worker, "worker")];
+
+impl FromStr for Role {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, String> {
+        for (role, role_string) in ROLE_STRINGS.iter() {
+            if s == *role_string {
+                return Ok(role.clone());
+            }
+        }
+        return Err("Invalid mode string:".to_owned() + &s.to_owned());
+    }
+}
+
 pub struct Creep {
     pub creep: screeps::Creep,
-    role: Box<dyn ModeFlow>,
+    mode_flow: Box<dyn ModeFlow>,
+    role: Role,
 }
 
 impl Creep {
     pub fn new(creep: screeps::Creep) -> Creep {
         let name = creep.name();
         let name_prefix = name.split(":").next().unwrap();
+        let role = Role::from_str(name_prefix).unwrap();
 
         Creep {
             creep: creep,
-            role: match name_prefix {
-                harvester::NAME_PREFIX => Box::new(harvester::Harvester),
-                worker::NAME_PREFIX => Box::new(worker::Worker),
-                _ => panic!("Invalid creep name."),
+            mode_flow: match role {
+                Role::Harvester => Box::new(harvester::Harvester),
+                Role::Worker => Box::new(worker::Worker),
             },
+            role: role,
         }
     }
 
     pub fn consumption_rate(&self) -> u32 {
-        self.role.consumtpion_rate(&self)
+        self.mode_flow.consumtpion_rate(&self)
     }
 
     fn game_loop(&self) {
@@ -68,7 +92,7 @@ impl Creep {
     }
 
     fn update_mode(&self) {
-        if let Some(mode) = self.role.get_new_mode(&self) {
+        if let Some(mode) = self.mode_flow.get_new_mode(&self) {
             self.set_mode(mode);
         }
     }
@@ -314,12 +338,13 @@ impl CreepManager {
     }
 
     fn register_all_creeps(&mut self) {
-        for creep in screeps::game::creeps::values() {
-            if creep.name().starts_with(harvester::NAME_PREFIX) {
-                self.harvesters.push(Creep::new(creep))
-            } else if creep.name().starts_with(worker::NAME_PREFIX) {
-                self.workers.push(Creep::new(creep));
+        for screeps_creep in screeps::game::creeps::values() {
+            let creep = Creep::new(screeps_creep);
+            match creep.role {
+                Role::Harvester => &mut self.harvesters,
+                Role::Worker => &mut self.workers,
             }
+            .push(creep);
         }
     }
 
