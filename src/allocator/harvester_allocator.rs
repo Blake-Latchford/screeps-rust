@@ -28,18 +28,9 @@ pub fn get_description(capacity: u32) -> (Vec<Part>, &'static str) {
 }
 
 pub fn allocate_creep(creep: Creep) {
-    if creep.get_stored_id("input").is_none() {
-        debug!("{} has no target", creep.creep.name());
+    if creep.get_input::<Source>().is_none() {
         if let Some(target_source) = get_target_source() {
-            info!(
-                "Allocateed source {} to {}",
-                target_source.id(),
-                creep.creep.name()
-            );
-            creep
-                .creep
-                .memory()
-                .set("input", target_source.id().to_string());
+            creep.set_input(target_source.untyped_id());
         }
     }
 }

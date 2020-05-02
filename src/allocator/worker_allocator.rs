@@ -42,13 +42,13 @@ pub fn can_allocate_more() -> bool {
 
 fn allocate_input(creep: &Creep) {
     if let Some(spawn) = screeps::game::spawns::values().pop() {
-        creep.creep.memory().set("input", spawn.id().to_string());
+        creep.set_input(spawn.untyped_id());
     }
 }
 
 fn allocate_output(creep: &Creep) {
     if let Some(output_id) = allocate_output_id() {
-        creep.creep.memory().set("output", output_id.to_string());
+        creep.set_output(output_id);
     }
 }
 

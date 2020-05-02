@@ -52,7 +52,7 @@ impl FromStr for Role {
 }
 
 pub struct Creep {
-    pub creep: screeps::Creep,
+    creep: screeps::Creep,
     mode_flow: Box<dyn ModeFlow>,
     role: Role,
 }
@@ -144,6 +144,21 @@ impl Creep {
         T: screeps::SizedRoomObject + screeps::HasId,
     {
         return self.get_stored_object("input");
+    }
+
+    pub fn set_input(&self, target_id: RawObjectId) {
+        self.creep.memory().set("input", target_id.to_string());
+    }
+
+    pub fn get_output<T>(&self) -> Option<T>
+    where
+        T: screeps::SizedRoomObject + screeps::HasId,
+    {
+        return self.get_stored_object("output");
+    }
+
+    pub fn set_output(&self, target_id: RawObjectId) {
+        self.creep.memory().set("output", target_id.to_string());
     }
 
     fn get_stored_object<T>(&self, key: &str) -> Option<T>
