@@ -1,23 +1,17 @@
-use log::*;
-
-use super::creeps::Creep;
+use super::creeps;
 
 pub mod harvester_allocator;
 pub mod worker_allocator;
 
 pub fn allocate_creeps() {
     for creep in screeps::game::creeps::values() {
-        allocate_creep(creep);
+        allocate_creep(creeps::Creep::new(creep));
     }
 }
 
-fn allocate_creep(creep: screeps::Creep) {
-    let name = creep.name();
-    let name_prefix = name.split(":").next().unwrap();
-    let local_creep = Creep::new(creep);
-    match name_prefix {
-        harvester_allocator::NAME_PREFIX => harvester_allocator::allocate_creep(local_creep),
-        worker_allocator::NAME_PREFIX => worker_allocator::allocate_creep(local_creep),
-        _ => error!("Invalid name prefix: {}", name_prefix),
+fn allocate_creep(creep: creeps::Creep) {
+    match creep.role {
+        creeps::Role::Harvester => harvester_allocator::allocate_creep(creep),
+        creeps::Role::Worker => worker_allocator::allocate_creep(creep),
     }
 }

@@ -54,7 +54,7 @@ impl FromStr for Role {
 pub struct Creep {
     creep: screeps::Creep,
     mode_flow: Box<dyn ModeFlow>,
-    role: Role,
+    pub role: Role,
 }
 
 impl Creep {
