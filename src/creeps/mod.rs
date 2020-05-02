@@ -26,14 +26,14 @@ impl Mode {
     }
 }
 
-trait Role {
+trait ModeFlow {
     fn get_new_mode(&self, creep: &Creep) -> Option<Mode>;
     fn consumtpion_rate(&self, creep: &Creep) -> u32;
 }
 
 pub struct Creep {
     pub creep: screeps::Creep,
-    role: Box<dyn Role>,
+    role: Box<dyn ModeFlow>,
 }
 
 impl Creep {

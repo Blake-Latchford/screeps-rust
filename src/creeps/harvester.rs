@@ -1,10 +1,10 @@
-use super::{Creep, Mode, Role};
+use super::{Creep, Mode, ModeFlow};
 use screeps::{prelude::*, Part};
 
 pub const NAME_PREFIX: &'static str = "harvester";
 pub struct Harvester;
 
-impl Role for Harvester {
+impl ModeFlow for Harvester {
     fn get_new_mode(&self, creep: &Creep) -> Option<Mode> {
         if creep.creep.store_free_capacity(None) == 0 {
             return Some(Mode::TransferTo);

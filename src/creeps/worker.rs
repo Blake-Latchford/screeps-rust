@@ -1,10 +1,10 @@
-use super::{Creep, Mode, Role};
+use super::{Creep, Mode, ModeFlow};
 use screeps::{prelude::*, ConstructionSite, Part};
 pub const NAME_PREFIX: &'static str = "worker";
 
 pub struct Worker;
 
-impl Role for Worker {
+impl ModeFlow for Worker {
     fn get_new_mode(&self, creep: &Creep) -> Option<Mode> {
         if self.should_start_upgrade(creep) {
             return Some(Mode::UpgradeController);
