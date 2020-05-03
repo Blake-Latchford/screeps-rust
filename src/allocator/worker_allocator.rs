@@ -29,12 +29,18 @@ pub fn get_description(capacity: u32) -> Option<Vec<Part>> {
     Some(result)
 }
 
-pub fn allocate_creep(creep: Creep) {
+pub fn allocate_creeps(creeps: Vec<Creep>) {
+    for creep in creeps {
+        allocate_creep(creep);
+    }
+}
+
+fn allocate_creep(creep: Creep) {
     allocate_input(&creep);
     allocate_output(&creep);
 }
 
-pub fn can_allocate_more() -> bool {
+fn can_allocate_more() -> bool {
     let worker_count = screeps::game::creeps::values()
         .iter()
         .map(|x| Creep::new(x.clone()))

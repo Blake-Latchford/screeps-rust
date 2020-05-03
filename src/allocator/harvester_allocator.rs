@@ -29,7 +29,13 @@ pub fn get_description(capacity: u32) -> Option<Vec<Part>> {
     Some(body)
 }
 
-pub fn allocate_creep(creep: creeps::Creep) {
+pub fn allocate_creeps(creeps: Vec<creeps::Creep>) {
+    for creep in creeps {
+        allocate_creep(creep);
+    }
+}
+
+fn allocate_creep(creep: creeps::Creep) {
     if creep.get_input::<Source>().is_none() {
         if let Some(target_source) = get_target_source() {
             creep.set_input(target_source.untyped_id());
@@ -37,7 +43,7 @@ pub fn allocate_creep(creep: creeps::Creep) {
     }
 }
 
-pub fn get_target_source() -> Option<Source> {
+fn get_target_source() -> Option<Source> {
     let mut harvesters = vec![];
     for screeps_creep in screeps::game::creeps::values() {
         let creep = creeps::Creep::new(screeps_creep);

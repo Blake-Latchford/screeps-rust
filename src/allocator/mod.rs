@@ -1,20 +1,22 @@
 use super::creeps;
 use screeps::Part;
+use std::collections::HashMap;
 
 mod harvester_allocator;
 mod worker_allocator;
 
 pub fn allocate_creeps() {
-    for creep in screeps::game::creeps::values() {
-        allocate_creep(creeps::Creep::new(creep));
+    let mut role_map = HashMap::new();
+    for screeps_creep in screeps::game::creeps::values() {
+        let creep = creeps::Creep::new(screeps_creep);
+        role_map
+            .entry(creep.role.clone())
+            .or_insert(vec![])
+            .push(creep);
     }
-}
 
-fn allocate_creep(creep: creeps::Creep) {
-    match creep.role {
-        creeps::Role::Harvester => harvester_allocator::allocate_creep(creep),
-        creeps::Role::Worker => worker_allocator::allocate_creep(creep),
-    }
+    harvester_allocator::allocate_creeps(role_map.remove(&creeps::Role::Harvester).unwrap());
+    worker_allocator::allocate_creeps(role_map.remove(&creeps::Role::Worker).unwrap());
 }
 
 pub fn get_spawn_target(capacity: u32) -> Option<(Vec<Part>, creeps::Role)> {

@@ -30,7 +30,7 @@ trait ModeFlow {
     fn consumtpion_rate(&self, creep: &Creep) -> u32;
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub enum Role {
     Harvester,
     Worker,
