@@ -1,4 +1,5 @@
 use super::creeps;
+use log::*;
 use screeps::Part;
 use std::collections::HashMap;
 
@@ -6,6 +7,7 @@ mod harvester_allocator;
 mod worker_allocator;
 
 pub fn allocate_creeps() {
+    debug!("{}:{}: allocate creeps", std::file!(), std::line!());
     let mut role_map = HashMap::new();
     for screeps_creep in screeps::game::creeps::values() {
         let creep = creeps::Creep::new(screeps_creep);

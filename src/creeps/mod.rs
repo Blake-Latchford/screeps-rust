@@ -159,6 +159,12 @@ impl Creep {
     }
 
     pub fn set_input(&self, target_id: RawObjectId) {
+        debug!(
+            "{}:{}: set input target {}",
+            std::file!(),
+            std::line!(),
+            target_id.to_string()
+        );
         self.creep.memory().set("input", target_id.to_string());
     }
 
@@ -170,6 +176,12 @@ impl Creep {
     }
 
     pub fn set_output(&self, target_id: RawObjectId) {
+        debug!(
+            "{}:{}: set out target {}",
+            std::file!(),
+            std::line!(),
+            target_id.to_string()
+        );
         self.creep.memory().set("output", target_id.to_string());
     }
 
