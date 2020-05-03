@@ -2,10 +2,6 @@
 1. Make creep sub-class composition rather than inheritance.
     1. Rename creeps module to creep.
     1. Convert Mode and Role enum string resolution to use a hash.
-1. Move spawn target prioritiziation into allocator.
-    1. Make allocator derriviatves private to allocator.
-    1. Move NAME_PREFIX from derivative allocators into main allocator.
-        1. Remove NAME_PREFIX from creep sub classes.
 1. Handle creep colision deadlock.
     1. Rewrite Creep::move_to_target to reduce nesting.
     1. Don't haul energy to spawn if spawn is full

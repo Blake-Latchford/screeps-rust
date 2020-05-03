@@ -51,6 +51,18 @@ impl FromStr for Role {
     }
 }
 
+impl Role {
+    pub fn to_string(&self) -> &'static str {
+        for (role, role_string) in ROLE_STRINGS.iter() {
+            if self == role {
+                return role_string;
+            }
+        }
+
+        panic!("Unable to convert role to string");
+    }
+}
+
 pub struct Creep {
     creep: screeps::Creep,
     mode_flow: Box<dyn ModeFlow>,

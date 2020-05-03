@@ -3,11 +3,13 @@ use screeps::{find, prelude::*, Part, RawObjectId, Source};
 use std::collections::HashMap;
 use std::convert::TryInto;
 
-use crate::creeps::Creep;
+use crate::creeps;
 
-pub const NAME_PREFIX: &'static str = "harvester";
+pub fn get_description(capacity: u32) -> Option<Vec<Part>> {
+    if get_target_source().is_none() {
+        return None;
+    }
 
-pub fn get_description(capacity: u32) -> (Vec<Part>, &'static str) {
     let mut body = vec![Part::Move, Part::Carry];
     let base_body_cost = body.iter().map(|p| p.cost()).sum::<u32>();
     assert!(capacity >= base_body_cost);
@@ -24,10 +26,10 @@ pub fn get_description(capacity: u32) -> (Vec<Part>, &'static str) {
         body.push(Part::Carry);
     }
 
-    (body, NAME_PREFIX)
+    Some(body)
 }
 
-pub fn allocate_creep(creep: Creep) {
+pub fn allocate_creep(creep: creeps::Creep) {
     if creep.get_input::<Source>().is_none() {
         if let Some(target_source) = get_target_source() {
             creep.set_input(target_source.untyped_id());
@@ -37,26 +39,27 @@ pub fn allocate_creep(creep: Creep) {
 
 pub fn get_target_source() -> Option<Source> {
     let mut harvesters = vec![];
-    for creep in screeps::game::creeps::values() {
-        if creep.name().starts_with(NAME_PREFIX) {
-            harvesters.push(Creep::new(creep));
+    for screeps_creep in screeps::game::creeps::values() {
+        let creep = creeps::Creep::new(screeps_creep);
+        if creep.role == creeps::Role::Harvester {
+            harvesters.push(creep);
         }
     }
 
-    return get_source_with_most_capacity(&harvesters);
+    return get_source_with_most_capacity(harvesters);
 }
 
-fn get_source_with_most_capacity(creeps: &Vec<Creep>) -> Option<Source> {
+fn get_source_with_most_capacity(creeps: Vec<creeps::Creep>) -> Option<Source> {
     let source_id = source_creep_map(creeps)
         .drain()
         .filter(|(k, v)| v.len() < max_creeps(k))
-        .max_by_key(|(k, v)| wasted_input_rate(&k, &v))?
+        .max_by_key(|(k, v)| wasted_input_rate(&k, v))?
         .0;
     debug!("{}:{}", file!(), line!());
     return screeps::game::get_object_typed::<Source>(source_id.into()).ok()?;
 }
 
-fn source_creep_map(creep: &Vec<Creep>) -> HashMap<RawObjectId, Vec<&Creep>> {
+fn source_creep_map(creep: Vec<creeps::Creep>) -> HashMap<RawObjectId, Vec<creeps::Creep>> {
     let mut result = HashMap::new();
 
     for source in get_my_sources() {
@@ -91,7 +94,7 @@ fn max_creeps(_source_id: &RawObjectId) -> usize {
     return 2;
 }
 
-fn wasted_input_rate(source_id: &RawObjectId, harvesters: &Vec<&Creep>) -> i32 {
+fn wasted_input_rate(source_id: &RawObjectId, harvesters: &Vec<creeps::Creep>) -> i32 {
     let source = screeps::game::get_object_typed::<Source>((*source_id).into())
         .unwrap()
         .unwrap();
@@ -105,6 +108,6 @@ fn input_rate(source: Source) -> u32 {
     return source.energy_capacity() / screeps::constants::ENERGY_REGEN_TIME;
 }
 
-fn output_rate(harvesters: &Vec<&Creep>) -> u32 {
+fn output_rate(harvesters: &Vec<creeps::Creep>) -> u32 {
     return harvesters.iter().map(|x| x.consumption_rate()).sum();
 }

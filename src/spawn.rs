@@ -1,7 +1,6 @@
-use crate::allocator::harvester_allocator;
-use crate::allocator::worker_allocator;
+use crate::allocator;
 use log::*;
-use screeps::{prelude::*, Part, ResourceType, ReturnCode};
+use screeps::{prelude::*, ResourceType, ReturnCode};
 
 struct Spawn(screeps::StructureSpawn);
 
@@ -13,49 +12,9 @@ impl Spawn {
             return;
         }
 
-        if let Some((body, name_prefix)) = self.get_spawn_target() {
-            let spawn_cost = body.iter().map(|p| p.cost()).sum();
-            if self.0.energy() >= spawn_cost {
-                self.spawn_creep(&body, name_prefix);
-            }
+        if let Some((body, role)) = allocator::get_spawn_target(self.capacity()) {
+            self.spawn_creep(&body, role.to_string());
         }
-    }
-
-    fn get_spawn_target(&self) -> Option<(Vec<Part>, &'static str)> {
-        let harvester_spawn_target = self.get_harvester_spawn_target();
-        if harvester_spawn_target.is_some() {
-            return harvester_spawn_target;
-        }
-
-        let worke_spawn_target = self.get_worker_spawn_target();
-        if worke_spawn_target.is_some() {
-            return worke_spawn_target;
-        }
-
-        return None;
-    }
-
-    fn get_harvester_spawn_target(&self) -> Option<(Vec<Part>, &'static str)> {
-        debug!("Check for harvester targets.");
-        if harvester_allocator::get_target_source().is_some() {
-            let store_capacity = self.0.store_capacity(Some(ResourceType::Energy));
-            if store_capacity > 0 {
-                return Some(harvester_allocator::get_description(store_capacity));
-            } else {
-                error!("Store has no capacity!");
-            }
-        } else {
-            debug!("No harvester targets");
-        }
-        return None;
-    }
-
-    fn get_worker_spawn_target(&self) -> Option<(Vec<Part>, &'static str)> {
-        let store_capacity = self.0.store_capacity(Some(ResourceType::Energy));
-        if worker_allocator::can_allocate_more() {
-            return Some(worker_allocator::get_description(store_capacity));
-        }
-        return None;
     }
 
     fn spawn_creep(&mut self, body: &Vec<screeps::Part>, name_prefix: &str) {
@@ -69,6 +28,10 @@ impl Spawn {
             }
             return;
         }
+    }
+
+    fn capacity(&self) -> u32 {
+        self.0.store_capacity(Some(ResourceType::Energy))
     }
 }
 

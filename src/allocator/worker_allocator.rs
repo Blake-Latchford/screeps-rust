@@ -3,11 +3,13 @@ use screeps::{
     find, prelude::*, ConstructionSite, Part, Position, RawObjectId, StructureController,
 };
 
-use crate::creeps::Creep;
+use crate::creeps::{Creep, Role};
 
-pub const NAME_PREFIX: &'static str = "worker";
+pub fn get_description(capacity: u32) -> Option<Vec<Part>> {
+    if !can_allocate_more() {
+        return None;
+    }
 
-pub fn get_description(capacity: u32) -> (Vec<Part>, &'static str) {
     let part_set = [Part::Move, Part::Carry, Part::Work];
     let part_set_cost: u32 = part_set.iter().map(|part| part.cost()).sum();
     let number_of_part_sets = capacity / part_set_cost;
@@ -24,7 +26,7 @@ pub fn get_description(capacity: u32) -> (Vec<Part>, &'static str) {
             result.push(*part);
         }
     }
-    (result, NAME_PREFIX)
+    Some(result)
 }
 
 pub fn allocate_creep(creep: Creep) {
@@ -35,7 +37,8 @@ pub fn allocate_creep(creep: Creep) {
 pub fn can_allocate_more() -> bool {
     let worker_count = screeps::game::creeps::values()
         .iter()
-        .filter(|x| x.name().starts_with(NAME_PREFIX))
+        .map(|x| Creep::new(x.clone()))
+        .filter(|x| x.role == Role::Worker)
         .count();
     return worker_count < 2;
 }
