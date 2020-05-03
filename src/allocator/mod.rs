@@ -17,8 +17,12 @@ pub fn allocate_creeps() {
             .push(creep);
     }
 
-    harvester_allocator::allocate_creeps(role_map.remove(&creeps::Role::Harvester).unwrap());
-    worker_allocator::allocate_creeps(role_map.remove(&creeps::Role::Worker).unwrap());
+    if let Some(harvesters) = role_map.remove(&creeps::Role::Harvester) {
+        harvester_allocator::allocate_creeps(harvesters);
+    }
+    if let Some(workers) = role_map.remove(&creeps::Role::Worker) {
+        worker_allocator::allocate_creeps(workers);
+    }
 }
 
 pub fn get_spawn_target(capacity: u32) -> Option<(Vec<Part>, creeps::Role)> {
