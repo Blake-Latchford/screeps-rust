@@ -9,4 +9,5 @@
 1. Relate maximum number of harvesters to adjacent open spaces.
 1. Remove SpawnManager.
 1. Make spawn understand extensions.
-    1. Make allocators understand extesions.
+1. Set worker mode based on target.
+1. Stop high frequency switching of worker target.
