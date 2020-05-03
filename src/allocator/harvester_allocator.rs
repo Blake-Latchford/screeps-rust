@@ -132,12 +132,14 @@ fn allocate_creep_output(creep: creeps::Creep) {
     available_stores.sort_unstable_by_key(|x| creep.get_range_to(&x.pos()));
     if let Some(first) = available_stores.first() {
         creep.set_output(first.untyped_id());
+    } else {
+        warn!("Unable to find valid output.");
     }
 }
 
 fn is_valid_output(structure: &screeps::Structure) -> bool {
-    if let Some(has_store) = structure.as_has_store() {
-        if has_store.store_free_capacity(None) > 0 {
+    if let Some(has_store) = structure.as_has_energy_for_spawn() {
+        if has_store.store_free_capacity(None) <= 0 {
             return true;
         }
     }
