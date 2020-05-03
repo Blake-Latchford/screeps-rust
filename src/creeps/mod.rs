@@ -198,6 +198,13 @@ impl Creep {
     fn is_empty(&self) -> bool {
         self.creep.store_used_capacity(None) == 0
     }
+
+    pub fn get_range_to<T>(&self, target: &T) -> u32
+    where
+        T: ?Sized + HasPosition,
+    {
+        self.creep.pos().get_range_to(target)
+    }
 }
 
 pub fn game_loop() {

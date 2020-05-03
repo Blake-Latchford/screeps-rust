@@ -1,5 +1,5 @@
 use log::*;
-use screeps::{find, prelude::*, Part, RawObjectId, Source};
+use screeps::{find, prelude::*, HasId, Part, RawObjectId, Source};
 use std::collections::HashMap;
 use std::convert::TryInto;
 
@@ -41,6 +41,8 @@ fn allocate_creep(creep: creeps::Creep) {
             creep.set_input(target_source.untyped_id());
         }
     }
+
+    allocate_creep_output(creep);
 }
 
 fn get_target_source() -> Option<Source> {
@@ -116,4 +118,29 @@ fn input_rate(source: Source) -> u32 {
 
 fn output_rate(harvesters: &Vec<creeps::Creep>) -> u32 {
     return harvesters.iter().map(|x| x.consumption_rate()).sum();
+}
+
+fn allocate_creep_output(creep: creeps::Creep) {
+    if let Some(output) = creep.get_output::<screeps::Structure>() {
+        if is_valid_output(&output) {
+            return;
+        }
+    }
+
+    let structures = screeps::game::structures::values();
+    let mut available_stores: Vec<_> = structures.iter().filter(|x| is_valid_output(x)).collect();
+    available_stores.sort_unstable_by_key(|x| creep.get_range_to(&x.pos()));
+    if let Some(first) = available_stores.first() {
+        creep.set_output(first.untyped_id());
+    }
+}
+
+fn is_valid_output(structure: &screeps::Structure) -> bool {
+    if let Some(has_store) = structure.as_has_store() {
+        if has_store.store_free_capacity(None) > 0 {
+            return true;
+        }
+    }
+
+    return false;
 }
