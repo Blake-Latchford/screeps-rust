@@ -3,7 +3,7 @@ use screeps::{
     prelude::*, ConstructionSite, ResourceType, ReturnCode, Source, Structure, StructureController,
 };
 
-use super::{Creep, Mode};
+use super::Creep;
 
 pub fn execute(creep: &Creep) {
     debug!("running {}", creep.creep.name());
@@ -18,7 +18,7 @@ pub fn execute(creep: &Creep) {
 }
 
 fn update_mode(creep: &Creep) {
-    if let Some(mode) = creep.mode_flow.get_new_mode(creep) {
+    if let Some(mode) = creep.get_new_mode() {
         creep.set_mode(mode);
     }
 }
@@ -29,15 +29,30 @@ fn execute_mode(creep: &Creep) {
         return;
     }
 
-    let mode = creep.get_mode();
-    debug!("Execute mode {:?}", mode);
-    match mode {
-        Mode::TransferTo => transfer_to(creep),
-        Mode::TransferFrom => transfer_from(creep),
-        Mode::Harvest => harvest(creep),
-        Mode::UpgradeController => upgrade_controller(creep),
-        Mode::Build => build(creep),
-        Mode::Idle => idle(creep),
+    match creep.get_mode() {
+        super::Mode::Input => execute_input_mode(creep),
+        super::Mode::Output => execute_output_mode(creep),
+        super::Mode::Idle => debug!("Execute idle mode."),
+    }
+}
+
+fn execute_input_mode(creep: &Creep) {
+    if creep.get_target::<Source>().is_some() {
+        harvest(creep);
+    } else if creep.get_target::<Structure>().is_some() {
+        transfer_from(creep);
+    } else {
+        idle(creep);
+    }
+}
+
+fn execute_output_mode(creep: &Creep) {
+    if creep.get_target::<StructureController>().is_some() {
+        upgrade_controller(creep);
+    } else if creep.get_target::<ConstructionSite>().is_some() {
+        build(creep);
+    } else {
+        transfer_to(creep);
     }
 }
 

@@ -1,7 +1,6 @@
 use log::*;
 use screeps::{find, prelude::*, HasId, Part, RawObjectId, Source};
 use std::collections::HashMap;
-use std::convert::TryInto;
 
 use crate::creeps;
 
@@ -61,7 +60,7 @@ fn get_source_with_most_capacity(creeps: Vec<creeps::Creep>) -> Option<Source> {
     let source_id = source_creep_map(creeps)
         .drain()
         .filter(|(k, v)| v.len() < max_creeps(k))
-        .max_by_key(|(k, v)| wasted_input_rate(&k, v))?
+        .min_by_key(|(_, v)| v.len())?
         .0;
     debug!("{}:{}", file!(), line!());
     return screeps::game::get_object_typed::<Source>(source_id.into()).ok()?;
@@ -100,24 +99,6 @@ fn get_my_sources() -> Vec<Source> {
 
 fn max_creeps(_source_id: &RawObjectId) -> usize {
     return 2;
-}
-
-fn wasted_input_rate(source_id: &RawObjectId, harvesters: &Vec<creeps::Creep>) -> i32 {
-    let source = screeps::game::get_object_typed::<Source>((*source_id).into())
-        .unwrap()
-        .unwrap();
-    let input_rate: i32 = input_rate(source).try_into().unwrap();
-    let output_rate: i32 = output_rate(harvesters).try_into().unwrap();
-
-    return input_rate - output_rate;
-}
-
-fn input_rate(source: Source) -> u32 {
-    return source.energy_capacity() / screeps::constants::ENERGY_REGEN_TIME;
-}
-
-fn output_rate(harvesters: &Vec<creeps::Creep>) -> u32 {
-    return harvesters.iter().map(|x| x.consumption_rate()).sum();
 }
 
 fn allocate_creep_output(creep: creeps::Creep) {

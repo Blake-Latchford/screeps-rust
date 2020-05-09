@@ -5,29 +5,12 @@ use std::collections::HashSet;
 use std::str::FromStr;
 
 mod execute;
-mod harvester;
-mod worker;
 
 #[derive(PartialEq, Debug)]
 pub enum Mode {
-    Harvest,
-    TransferTo,
-    TransferFrom,
-    UpgradeController,
-    Build,
+    Input,
+    Output,
     Idle,
-}
-
-impl Mode {
-    fn is_input_mode(&self) -> bool {
-        const INPUT_MODES: [Mode; 3] = [Mode::Harvest, Mode::TransferFrom, Mode::Idle];
-        INPUT_MODES.contains(self)
-    }
-}
-
-trait ModeFlow {
-    fn get_new_mode(&self, creep: &Creep) -> Option<Mode>;
-    fn consumtpion_rate(&self, creep: &Creep) -> u32;
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
@@ -65,7 +48,6 @@ impl Role {
 
 pub struct Creep {
     creep: screeps::Creep,
-    mode_flow: Box<dyn ModeFlow>,
     pub role: Role,
 }
 
@@ -77,25 +59,13 @@ impl Creep {
 
         Creep {
             creep: creep,
-            mode_flow: match role {
-                Role::Harvester => Box::new(harvester::Harvester),
-                Role::Worker => Box::new(worker::Worker),
-            },
             role: role,
         }
     }
-
-    pub fn consumption_rate(&self) -> u32 {
-        self.mode_flow.consumtpion_rate(&self)
-    }
-
     fn get_mode(&self) -> Mode {
         return match self.get_mode_string().as_str() {
-            "h" => Mode::Harvest,
-            "tt" => Mode::TransferTo,
-            "tf" => Mode::TransferFrom,
-            "u" => Mode::UpgradeController,
-            "b" => Mode::Build,
+            "input" => Mode::Input,
+            "output" => Mode::Output,
             _ => Mode::Idle,
         };
     }
@@ -113,12 +83,9 @@ impl Creep {
         }
 
         let mode_string = match mode {
-            Mode::Harvest => "h",
-            Mode::TransferTo => "tt",
-            Mode::TransferFrom => "tf",
-            Mode::UpgradeController => "u",
-            Mode::Build => "b",
-            Mode::Idle => "i",
+            Mode::Input => "input",
+            Mode::Output => "output",
+            Mode::Idle => "idle",
         };
         self.creep.memory().set("mode", mode_string);
         self.creep.say(mode_string, false);
@@ -145,9 +112,10 @@ impl Creep {
     }
 
     fn get_target_key(&self) -> &'static str {
-        return match self.get_mode().is_input_mode() {
-            true => "input",
-            false => "output",
+        return match self.get_mode() {
+            Mode::Input => "input",
+            Mode::Output => "output",
+            Mode::Idle => "input",
         };
     }
 
@@ -199,8 +167,14 @@ impl Creep {
         return Some(id);
     }
 
-    fn has_capacity(&self) -> bool {
-        self.creep.store_free_capacity(None) != 0
+    fn get_new_mode(&self) -> Option<Mode> {
+        if self.is_full() {
+            return Some(Mode::Output);
+        } else if self.is_empty() {
+            return Some(Mode::Input);
+        }
+
+        return None;
     }
 
     fn is_full(&self) -> bool {
