@@ -62,7 +62,6 @@ fn get_source_with_most_capacity(creeps: Vec<creeps::Creep>) -> Option<Source> {
         .filter(|(k, v)| v.len() < max_creeps(k))
         .min_by_key(|(_, v)| v.len())?
         .0;
-    debug!("{}:{}", file!(), line!());
     return screeps::game::get_object_typed::<Source>(source_id.into()).ok()?;
 }
 
