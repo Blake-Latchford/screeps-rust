@@ -93,15 +93,19 @@ impl Creep {
     }
 
     fn has_target(&self) -> bool {
-        if let Some(stored_id) = self.get_stored_id(self.get_target_key()) {
-            return screeps::game::get_object_erased(stored_id).is_some();
-        }
-        return false;
+        self.get_target_erased().is_some()
     }
 
     fn get_target_position(&self) -> Option<Position> {
-        let target_id = self.get_stored_id(self.get_target_key())?;
-        Some(screeps::game::get_object_erased(target_id)?.pos())
+        Some(self.get_target_erased()?.pos())
+    }
+
+    fn get_target_erased(&self) -> Option<screeps::RoomObject> {
+        screeps::game::get_object_erased(self.get_target_id()?)
+    }
+
+    fn get_target_id(&self) -> Option<RawObjectId> {
+        self.get_stored_id(self.get_target_key())
     }
 
     fn get_target<T>(&self) -> Option<T>

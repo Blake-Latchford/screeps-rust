@@ -29,112 +29,102 @@ fn execute_mode(creep: &Creep) {
         return;
     }
 
-    match creep.get_mode() {
+    let return_code = match creep.get_mode() {
         super::Mode::Input => execute_input_mode(creep),
         super::Mode::Output => execute_output_mode(creep),
-        super::Mode::Idle => debug!("Execute idle mode."),
+        super::Mode::Idle => ReturnCode::Ok,
+    };
+    if return_code == ReturnCode::NotInRange {
+        debug!(
+            "Failed '{:?}' to '{:?}': {:?}",
+            creep.get_mode(),
+            creep.get_target_id(),
+            return_code
+        );
+    } else if return_code != ReturnCode::Ok {
+        error!(
+            "Failed '{:?}' to '{:?}': {:?}",
+            creep.get_mode(),
+            creep.get_target_id(),
+            return_code
+        );
     }
 }
 
-fn execute_input_mode(creep: &Creep) {
+fn execute_input_mode(creep: &Creep) -> ReturnCode {
     if creep.get_target::<Source>().is_some() {
-        harvest(creep);
-    } else if creep.get_target::<Structure>().is_some() {
-        transfer_from(creep);
-    } else {
-        idle(creep);
+        debug!("harvest");
+        return harvest(creep);
     }
+    debug!("transfer_from");
+    return transfer_from(creep);
 }
 
-fn execute_output_mode(creep: &Creep) {
+fn execute_output_mode(creep: &Creep) -> ReturnCode {
     if creep.get_target::<StructureController>().is_some() {
-        upgrade_controller(creep);
-    } else if creep.get_target::<ConstructionSite>().is_some() {
-        build(creep);
-    } else {
-        transfer_to(creep);
+        debug!("upgrade_controller");
+        return upgrade_controller(creep);
     }
+    if creep.get_target::<ConstructionSite>().is_some() {
+        debug!("build");
+        return build(creep);
+    }
+    debug!("transfer_to");
+    return transfer_to(creep);
 }
 
-fn transfer_to(creep: &Creep) {
+fn transfer_to(creep: &Creep) -> ReturnCode {
     if let Some(target_structure) = creep.get_target::<Structure>() {
         if let Some(target_transferable) = target_structure.as_transferable() {
-            let return_code = creep
+            return creep
                 .creep
                 .transfer_all(target_transferable, ResourceType::Energy);
-            if return_code == ReturnCode::NotInRange {
-                debug!("Failed transfer_to: {:?}", return_code);
-            } else if return_code != ReturnCode::Ok {
-                error!(
-                    "Failed transfer_to '{:?}': {:?}",
-                    target_structure.id(),
-                    return_code
-                );
-            }
-        } else {
-            error!("Transfer to target is not transferable or upgradable");
         }
-    } else {
-        error!("Transfer to target is not a structure.");
     }
+    return ReturnCode::InvalidTarget;
 }
 
-fn upgrade_controller(creep: &Creep) {
+fn upgrade_controller(creep: &Creep) -> ReturnCode {
     if let Some(target_controller) = creep.get_target::<StructureController>() {
-        let return_code = creep.creep.upgrade_controller(&target_controller);
-        if return_code != ReturnCode::Ok {
-            debug!("Failed upgrade_controller: {:?}", return_code);
+        return creep.creep.upgrade_controller(&target_controller);
+    }
+    return ReturnCode::InvalidTarget;
+}
+
+fn transfer_from(creep: &Creep) -> ReturnCode {
+    assert!(creep.has_target());
+
+    if let Some(target_structure) = creep.get_target::<Structure>() {
+        if let Some(target_withdrawable) = target_structure.as_withdrawable() {
+            return creep
+                .creep
+                .withdraw_all(target_withdrawable, ResourceType::Energy);
         }
-    } else {
-        error!("Transfer to target is not a structure.");
     }
+    return ReturnCode::InvalidTarget;
 }
 
-fn transfer_from(creep: &Creep) {
+fn harvest(creep: &Creep) -> ReturnCode {
     assert!(creep.has_target());
 
-    let target_structure = creep.get_target::<Structure>().unwrap();
-    let target_withdrawable = target_structure.as_withdrawable().unwrap();
-    let return_code = creep
-        .creep
-        .withdraw_all(target_withdrawable, ResourceType::Energy);
-    if return_code != ReturnCode::Ok {
-        debug!("Failed transfer_from: {:?}", return_code);
+    if let Some(source) = creep.get_target::<Source>() {
+        return creep.creep.harvest(&source);
     }
+    return ReturnCode::InvalidTarget;
 }
 
-fn harvest(creep: &Creep) {
-    assert!(creep.has_target());
-
-    let source = creep.get_target::<Source>().unwrap();
-    let return_code = creep.creep.harvest(&source);
-    if return_code != ReturnCode::Ok {
-        debug!("Failed harvest: {:?}", return_code);
-    }
-}
-
-fn build(creep: &Creep) {
+fn build(creep: &Creep) -> ReturnCode {
     if let Some(construction_site) = creep.get_target::<ConstructionSite>() {
-        let return_code = creep.creep.build(&construction_site);
-        if return_code != ReturnCode::Ok {
-            debug!("Failed build: {:?}", return_code);
-        }
-    } else {
-        error!("Target is not a construction site.");
+        return creep.creep.build(&construction_site);
     }
-}
-
-fn idle(_: &Creep) {
-    debug!("Idle");
+    return ReturnCode::InvalidTarget;
 }
 
 fn move_to_target(creep: &Creep) {
     if let Some(target_position) = creep.get_target_position() {
         if target_position != creep.creep.pos() {
             let return_code = creep.creep.move_to(&target_position);
-            if return_code == ReturnCode::Tired {
-                debug!("Waiting for fatigue");
-            } else if return_code != ReturnCode::Ok {
+            if return_code != ReturnCode::Ok {
                 debug!("Failed move: {:?}", return_code);
             }
         } else {
