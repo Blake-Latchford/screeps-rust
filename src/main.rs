@@ -37,5 +37,7 @@ fn game_loop() {
     let mut spawn_manager = spawn::SpawnManager::new();
 
     spawn_manager.game_loop();
-    info!("done! cpu: {}", screeps::game::cpu::get_used())
+    info!("done! cpu: {}", screeps::game::cpu::get_used());
+
+    debug!("{}", screeps::raw_memory::get());
 }
